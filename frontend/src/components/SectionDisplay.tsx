@@ -2,8 +2,8 @@ import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useExamStore } from '../stores'
 import { ReviewModal } from './ReviewModal'
-import { QuestionDisplay, ReadingQuestion } from './QuestionDisplay'
-import { ListeningQuestionDisplay, ListeningQuestion } from './ListeningQuestionDisplay'
+import { QuestionDisplay, type ReadingQuestion } from './QuestionDisplay'
+import { ListeningQuestionDisplay, type ListeningQuestion } from './ListeningQuestionDisplay'
 import { PassageViewer } from './PassageViewer'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000'
@@ -143,60 +143,68 @@ export function SectionDisplay() {
         )}
 
         {!loading && !error && currentItem && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Left side: Question */}
-            <div>
-              {id === 'reading' && (
+          <>
+            {id === 'reading' ? (
+              <PassageViewer
+                passage={extractPassageFromContent(currentItem.content)}
+                questionIds={questionIds}
+              >
                 <QuestionDisplay question={currentItem as ReadingQuestion} />
-              )}
-              {id === 'listening' && (
-                <ListeningQuestionDisplay question={currentItem as ListeningQuestion} />
-              )}
-              {(id === 'writing' || id === 'speaking') && (
-                <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
-                  <div className="text-gray-300 space-y-4">
-                    <h3 className="text-xl font-semibold text-white capitalize">{id} Task</h3>
-                    <div className="prose prose-invert max-w-none">
-                      <p className="text-gray-300 whitespace-pre-wrap">{currentItem.content}</p>
+                
+                {/* Navigation buttons */}
+                <div className="mt-6 flex items-center justify-between">
+                  <button
+                    onClick={() => setCurrentItemIndex(Math.max(0, currentItemIndex - 1))}
+                    disabled={currentItemIndex === 0}
+                    className="px-6 py-2 bg-gray-700 hover:bg-gray-600 disabled:bg-gray-800 disabled:text-gray-600 text-white rounded transition"
+                  >
+                    ← Previous
+                  </button>
+                  <button
+                    onClick={() => setCurrentItemIndex(Math.min(items.length - 1, currentItemIndex + 1))}
+                    disabled={currentItemIndex === items.length - 1}
+                    className="px-6 py-2 bg-blue-600 hover:bg-blue-500 disabled:bg-gray-800 disabled:text-gray-600 text-white rounded transition"
+                  >
+                    Next →
+                  </button>
+                </div>
+              </PassageViewer>
+            ) : (
+              <div className="max-w-4xl mx-auto">
+                {id === 'listening' && (
+                  <ListeningQuestionDisplay question={currentItem as ListeningQuestion} />
+                )}
+                {(id === 'writing' || id === 'speaking') && (
+                  <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
+                    <div className="text-gray-300 space-y-4">
+                      <h3 className="text-xl font-semibold text-white capitalize">{id} Task</h3>
+                      <div className="prose prose-invert max-w-none">
+                        <p className="text-gray-300 whitespace-pre-wrap">{currentItem.content}</p>
+                      </div>
                     </div>
                   </div>
+                )}
+                
+                {/* Navigation buttons */}
+                <div className="mt-6 flex items-center justify-between">
+                  <button
+                    onClick={() => setCurrentItemIndex(Math.max(0, currentItemIndex - 1))}
+                    disabled={currentItemIndex === 0}
+                    className="px-6 py-2 bg-gray-700 hover:bg-gray-600 disabled:bg-gray-800 disabled:text-gray-600 text-white rounded transition"
+                  >
+                    ← Previous
+                  </button>
+                  <button
+                    onClick={() => setCurrentItemIndex(Math.min(items.length - 1, currentItemIndex + 1))}
+                    disabled={currentItemIndex === items.length - 1}
+                    className="px-6 py-2 bg-blue-600 hover:bg-blue-500 disabled:bg-gray-800 disabled:text-gray-600 text-white rounded transition"
+                  >
+                    Next →
+                  </button>
                 </div>
-              )}
-              
-              {/* Navigation buttons */}
-              <div className="mt-6 flex items-center justify-between">
-                <button
-                  onClick={() => setCurrentItemIndex(Math.max(0, currentItemIndex - 1))}
-                  disabled={currentItemIndex === 0}
-                  className="px-6 py-2 bg-gray-700 hover:bg-gray-600 disabled:bg-gray-800 disabled:text-gray-600 text-white rounded transition"
-                >
-                  ← Previous
-                </button>
-                <button
-                  onClick={() => setCurrentItemIndex(Math.min(items.length - 1, currentItemIndex + 1))}
-                  disabled={currentItemIndex === items.length - 1}
-                  className="px-6 py-2 bg-blue-600 hover:bg-blue-500 disabled:bg-gray-800 disabled:text-gray-600 text-white rounded transition"
-                >
-                  Next →
-                </button>
-              </div>
-            </div>
-
-            {/* Right side: Passage Viewer (for reading section) */}
-            {id === 'reading' && (
-              <div className="lg:sticky lg:top-4 lg:self-start">
-                <PassageViewer
-                  passages={[
-                    {
-                      id: currentItem.id,
-                      title: 'Reading Passage',
-                      content: extractPassageFromContent(currentItem.content),
-                    },
-                  ]}
-                />
               </div>
             )}
-          </div>
+          </>
         )}
       </main>
 
