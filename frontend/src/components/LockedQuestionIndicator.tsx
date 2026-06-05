@@ -86,7 +86,8 @@ export function LockedQuestionIndicator({
       {isLocked && (
         <div
           onClick={handleLockedClick}
-          className="absolute inset-0 bg-gray-900 bg-opacity-50 z-10 cursor-not-allowed rounded-lg"
+          className="absolute inset-0 z-10 cursor-not-allowed rounded-lg"
+          style={{ backgroundColor: 'rgba(0, 0, 0, 0.05)' }}
           aria-label="Question locked until passage is read"
           role="button"
           tabIndex={0}
