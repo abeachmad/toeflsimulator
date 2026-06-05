@@ -61,7 +61,8 @@ export function SectionDisplay() {
         const data = await response.json()
         
         // Handle different response formats
-        const itemsArray = Array.isArray(data) ? data : (data.items || [])
+        // API returns: { message: string, data: { items: [], total: number } }
+        const itemsArray = Array.isArray(data) ? data : (data.data?.items || data.items || [])
         
         // Transform backend items to frontend format
         const transformedItems = itemsArray.map((item: any) => ({
