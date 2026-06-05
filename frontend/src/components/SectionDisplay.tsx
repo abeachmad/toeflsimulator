@@ -60,8 +60,11 @@ export function SectionDisplay() {
 
         const data = await response.json()
         
+        // Handle different response formats
+        const itemsArray = Array.isArray(data) ? data : (data.items || [])
+        
         // Transform backend items to frontend format
-        const transformedItems = data.items.map((item: any) => ({
+        const transformedItems = itemsArray.map((item: any) => ({
           id: item.item_id,
           section: item.section,
           type: item.type,
