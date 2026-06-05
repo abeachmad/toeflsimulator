@@ -93,54 +93,13 @@ export function PassageViewer({
   }
 
   /**
-   * Initialize Gatekeeper when passage is displayed
-   * Implements Requirement 11.1 and 11.4
+   * Initialize - no gatekeeper, questions always unlocked
    */
   useEffect(() => {
-    // Reset scroll tracking when passage changes
-    hasScrolledToBottomRef.current = false
-
-    // Check if passage has actual content (not just whitespace)
-    // Requirement 11.4: When passage is empty or whitespace-only, allow normal input (no locking)
-    const trimmedPassage = passage?.trim() || ''
-    const hasContent = trimmedPassage.length > 0
-    
-    if (!hasContent) {
-      setGatekeeperActive(false)
-      unlockAllQuestions()
-      return
-    }
-
-    // Get the actual content height after render
-    const checkContentHeight = () => {
-      if (!passageRef.current) return
-
-      const contentHeight = passageRef.current.scrollHeight
-      
-      // Requirement 11.1: Lock all questions when passage has content (contentHeight > 0)
-      // In real browsers, scrollHeight will be > 0 for non-empty content
-      // In test environments without real layout, we check if passage text exists
-      const shouldActivateGatekeeper = contentHeight > 0 || hasContent
-      
-      if (shouldActivateGatekeeper && hasContent) {
-        setGatekeeperActive(true)
-        
-        // Lock all associated questions
-        questionIds.forEach((questionId) => {
-          lockQuestion(questionId)
-        })
-      } else {
-        // Requirement 11.4: contentHeight = 0 or no content, no locking
-        setGatekeeperActive(false)
-        unlockAllQuestions()
-      }
-    }
-
-    // Use setTimeout to ensure DOM is fully rendered
-    const timeoutId = setTimeout(checkContentHeight, 0)
-
-    return () => clearTimeout(timeoutId)
-  }, [passage, questionIds, setGatekeeperActive, lockQuestion, unlockAllQuestions])
+    // Always unlock all questions - no gatekeeper
+    setGatekeeperActive(false)
+    unlockAllQuestions()
+  }, [setGatekeeperActive, unlockAllQuestions])
 
   return (
     <div className={`flex flex-col lg:flex-row h-full min-h-screen ${className}`}>

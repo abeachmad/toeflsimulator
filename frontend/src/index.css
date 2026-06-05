@@ -154,3 +154,16 @@ code {
 .border-gray-600 {
   border-color: #9ca3af !important;
 }
+
+/* Keep button text white on dark buttons */
+button.bg-blue-600 .text-white,
+button.bg-blue-600,
+button.bg-blue-500,
+button.bg-gray-700,
+button.bg-gray-600 {
+  color: #ffffff !important;
+}
+
+button .text-white {
+  color: #ffffff !important;
+}
