@@ -71,7 +71,7 @@ export function SectionDisplay() {
         
         // Transform backend items to frontend format
         const transformedItems = itemsArray.map((item: any) => ({
-          id: item.item_id,
+          id: item.id || item.item_id, // API returns 'id' (aliased from item_id)
           section: item.section,
           type: item.type,
           difficulty_level: item.difficulty_level,
