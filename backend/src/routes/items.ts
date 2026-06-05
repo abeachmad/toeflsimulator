@@ -414,7 +414,7 @@ router.get('/difficulty/:difficulty', async (req: Request, res: Response, next: 
  */
 router.get('/stage/:stage', async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const stage = parseInt(req.params.stage, 10);
+    const stage = parseInt(req.params.stage || '1', 10);
     
     // Validate stage
     if (stage !== 1 && stage !== 2) {
