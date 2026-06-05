@@ -287,25 +287,6 @@ app.post('/seed-database', async (_req: Request, res: Response): Promise<void> =
     });
   }
 });
-      message: 'Database seeded successfully',
-      items_inserted: result.inserted,
-      items_failed: result.failed.length,
-      breakdown: {
-        reading: readingItems.length,
-        listening: 60,
-        writing: 30,
-        speaking: 15
-      }
-    });
-    
-  } catch (error) {
-    console.error('Seeding error:', error);
-    res.status(500).json({
-      status: 'error',
-      message: error instanceof Error ? error.message : 'Seeding failed'
-    });
-  }
-});
 
 // API root endpoint
 app.get('/api', (_req: Request, res: Response) => {
