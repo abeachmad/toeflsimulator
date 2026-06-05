@@ -21,11 +21,16 @@ const AUDIO_DIR = path.join(__dirname, '../../uploads/audio');
 const app = express();
 const NODE_ENV = process.env.NODE_ENV || 'development';
 
+// Trust proxy - required for Railway/Heroku/AWS behind load balancer
+app.set('trust proxy', 1);
+
 // CORS allowed origins — whitelist controlled via env var
 const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS ?? process.env.FRONTEND_URL ?? 'http://localhost:5173')
   .split(',')
   .map((o) => o.trim())
   .filter(Boolean);
+
+console.log('🔒 CORS enabled for:', ALLOWED_ORIGINS.join(', '));
 
 // Security middleware - helmet for security headers
 app.use(helmet());
