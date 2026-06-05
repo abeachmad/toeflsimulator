@@ -3,17 +3,8 @@
   "version": "1.0.0",
   "description": "TOEFL iBT 2026 Test Simulator - Full-stack web application",
   "private": true,
-  "workspaces": [
-    "frontend",
-    "backend"
-  ],
   "scripts": {
-    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
-    "dev:frontend": "npm run dev --workspace=frontend",
-    "dev:backend": "npm run dev --workspace=backend",
-    "build": "npm run build --workspace=frontend && npm run build --workspace=backend",
-    "test": "npm run test --workspaces",
-    "lint": "npm run lint --workspaces",
+    "dev": "concurrently \"cd backend && npm run dev\" \"cd frontend && npm run dev\"",
     "docker:up": "docker-compose up -d",
     "docker:down": "docker-compose down"
   },
