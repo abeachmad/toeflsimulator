@@ -1,0 +1,4 @@
+# Force Railway to use Nixpacks instead of Railpack
+# Ignore root package.json to prevent workspace detection
+/package.json
+/package-lock.json
