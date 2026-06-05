@@ -51,16 +51,20 @@ export function SectionDisplay() {
 
       {/* Main content area - placeholder */}
       <main className="max-w-7xl mx-auto p-8">
-        <div className="bg-gray-800 rounded-lg p-8 text-center">
+        <div className="bg-gray-800 rounded-lg p-8 text-center border border-gray-700">
           <h2 className="text-2xl font-bold text-white mb-4">
             {id ? `${id.charAt(0).toUpperCase() + id.slice(1)} Section` : 'Section'}
           </h2>
-          <p className="text-gray-400 mb-6">
+          <p className="text-gray-300 mb-6">
             This section will display exam questions and content.
           </p>
-          <p className="text-gray-500 text-sm">
+          <p className="text-gray-400 text-sm mb-6">
             Content rendering will be implemented in subsequent tasks.
           </p>
+          <div className="bg-yellow-900 border border-yellow-600 rounded-lg p-4 text-yellow-200">
+            <p className="font-semibold mb-2">⚠️ Database Needs More Test Items</p>
+            <p className="text-sm">The database currently has only 6 test items. The system needs 150+ items to function properly.</p>
+          </div>
         </div>
       </main>
 
