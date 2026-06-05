@@ -53,15 +53,13 @@ export function PassageViewer({
   children,
   onPassageFullyScrolled,
   className = '',
-  questionIds = [],
 }: PassageViewerProps) {
   const passageRef = useRef<HTMLDivElement>(null)
   const hasScrolledToBottomRef = useRef(false)
   
   const { 
     setGatekeeperActive, 
-    unlockAllQuestions, 
-    lockQuestion 
+    unlockAllQuestions
   } = useUIStore()
 
   /**
