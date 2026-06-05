@@ -37,7 +37,8 @@ export function ExamStart() {
       const newSessionId = `session-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
 
       // Initialize session on backend
-      const response = await fetch('/api/sessions', {
+      const apiUrl = import.meta.env.VITE_API_URL || ''
+      const response = await fetch(`${apiUrl}/api/sessions`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
