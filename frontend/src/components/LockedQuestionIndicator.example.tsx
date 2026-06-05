@@ -26,8 +26,6 @@ The Industrial Revolution brought about profound social and economic changes. It
 However, the revolution also led to increased production of goods, higher standards of living for many, and the growth of a middle class. It fundamentally changed how people worked and lived, setting the stage for the modern industrial economy.
   `.trim()
 
-  const questionIds = ['q1', 'q2', 'q3']
-
   return (
     <div className="min-h-screen bg-gray-900">
       <div className="bg-gray-800 border-b border-gray-700 p-4">
@@ -211,8 +209,6 @@ However, the revolution also led to increased production of goods, higher standa
  * Demonstrates Requirement 11.4: No locking when contentHeight = 0
  */
 export function NoPassageExample() {
-  const questionIds = ['q1']
-
   return (
     <div className="min-h-screen bg-gray-900">
       <div className="bg-gray-800 border-b border-gray-700 p-4">

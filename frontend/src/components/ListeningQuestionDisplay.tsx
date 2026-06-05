@@ -284,7 +284,7 @@ function parseQuestionContent(
     
     // Extract question from content if it exists (look for common question patterns)
     const questionMatch = question.content.match(/Question:\s*(.+?)(?:\n|$)/i)
-    const extractedQuestion: string = questionMatch ? questionMatch[1] : 'Listen to the audio and answer the question.'
+    const extractedQuestion: string = (questionMatch && questionMatch[1]) ? questionMatch[1] : 'Listen to the audio and answer the question.'
     
     // Use the content as transcript, and create appropriate structure
     return {
