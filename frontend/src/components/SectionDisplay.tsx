@@ -6,8 +6,25 @@ import { QuestionDisplay, type ReadingQuestion } from './QuestionDisplay'
 import { ListeningQuestionDisplay, type ListeningQuestion } from './ListeningQuestionDisplay'
 import { PassageViewer } from './PassageViewer'
 import { QuestionNavigationMap } from './QuestionNavigationMap'
+import { SectionTimer } from './SectionTimer'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000'
+
+// Official TOEFL iBT 2026 question counts per section
+const SECTION_LIMITS: Record<string, number> = {
+  reading: 20,      // 2 passages × 10 questions
+  listening: 28,    // 3 conversations (5Q each) + 3 lectures (6Q each)
+  writing: 2,       // 2 tasks (Integrated + Academic Discussion)
+  speaking: 4       // 4 tasks (1 independent + 3 integrated)
+}
+
+// Official TOEFL iBT 2026 time limits per section (in minutes)
+const SECTION_TIME_LIMITS: Record<string, number> = {
+  reading: 35,
+  listening: 36,
+  writing: 29,
+  speaking: 16
+}
 
 /**
  * SectionDisplay Component
@@ -23,6 +40,32 @@ export function SectionDisplay() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [currentItemIndex, setCurrentItemIndex] = useState(0)
+
+  // Get time limit for current section (Requirements 2.5, 2.6)
+  const timeLimit = id ? SECTION_TIME_LIMITS[id] || 60 : 60
+
+  // Handle timer expiration - auto-submit and navigate (Requirements 2.6, 3.1)
+  const handleTimerExpire = () => {
+    // Navigate to next section when timer expires
+    if (!id) return
+    
+    const nextSection = getNextSection(id)
+    if (nextSection) {
+      navigate(`/exam/section/${nextSection}`)
+    } else {
+      navigate('/exam/results')
+    }
+  }
+
+  // Get next section in sequence (Requirement 3.3)
+  const getNextSection = (current: string): string | null => {
+    const order = ['reading', 'listening', 'writing', 'speaking']
+    const currentIndex = order.indexOf(current)
+    if (currentIndex < 0 || currentIndex >= order.length - 1) {
+      return null
+    }
+    return order[currentIndex + 1] as string
+  }
 
   useEffect(() => {
     // Validate session exists
@@ -47,8 +90,11 @@ export function SectionDisplay() {
         setError(null)
         setCurrentItemIndex(0) // Reset to first question when section changes
         
+        // Use dynamic limit based on section type (Requirements 1.1, 1.2, 1.3, 1.4)
+        const limit = SECTION_LIMITS[id] || 50
+        
         const response = await fetch(
-          `${API_URL}/api/items/section/${id}?limit=50`,
+          `${API_URL}/api/items/section/${id}?limit=${limit}`,
           {
             headers: {
               'Content-Type': 'application/json',
@@ -138,8 +184,18 @@ export function SectionDisplay() {
           <h1 className="text-gray-900 font-semibold text-lg capitalize">
             {id || 'Section'} Section
           </h1>
-          <div className="text-gray-700 text-sm">
-            Question {currentItemIndex + 1} of {items.length}
+          <div className="flex items-center gap-6">
+            <div className="text-gray-700 text-sm">
+              Question {currentItemIndex + 1} of {items.length}
+            </div>
+            {/* Section Timer - Requirements 2.5, 2.6, 2.7, 2.8 */}
+            {id && (
+              <SectionTimer
+                section={id as 'reading' | 'listening' | 'writing' | 'speaking'}
+                timeLimit={timeLimit}
+                onExpire={handleTimerExpire}
+              />
+            )}
           </div>
         </div>
       </header>
