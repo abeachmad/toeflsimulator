@@ -3,7 +3,7 @@
  * 
  * Downloads and parses multiple real TOEFL datasets:
  * 1. TOEFL-QA (963 reading/listening questions)
- * 2. TOEFL Sentence Insertion Dataset
+ * 2. TOEFL Sentence Insertion Dataset  
  * 3. Write for Academic Discussion (Hugging Face)
  * 4. TOEFL Synonym/Vocabulary datasets
  * 5. Wordlink synonym matching
@@ -78,83 +78,10 @@ function generateIRTParams(difficulty: 'easy' | 'medium' | 'hard'): { a: number;
 }
 
 /**
- * Parse TOEFL-QA Dataset (963 questions)
- * Try multiple file locations including individual TPO files
- */
-async function parseTOEFLQA(): Promise<TOEFLItem[]> {
-  console.log('📥 Fetching TOEFL-QA dataset...');
-  
-  const urls = [
-    'https://raw.githubusercontent.com/iamyuanchung/TOEFL-QA/master/data/train/tpo_1-conversation_1_1',
-    'https://raw.githubusercontent.com/iamyuanchung/TOEFL-QA/master/data/train/tpo_1-lecture_1_2',
-    'https://raw.githubusercontent.com/iamyuanchung/TOEFL-QA/master/data/train/tpo_2-conversation_1_1',
-    'https://raw.githubusercontent.com/iamyuanchung/TOEFL-QA/master/data/train/tpo_3-lecture_1_2',
-    'https://raw.githubusercontent.com/iamyuanchung/TOEFL-QA/master/data/train/tpo_4-conversation_1_1',
-  ];
-  
-  const items: TOEFLItem[] = [];
-  let successCount = 0;
-  
-  for (let idx = 0; idx < urls.length; idx++) {
-    const url = urls[idx];
-    try {
-      console.log(`   Fetching TPO file ${idx + 1}/${urls.length}...`);
-      const data = await fetchUrl(url);
-      
-      // Parse text format: passage, question, options, answer
-      const lines = data.split('\n').filter(line => line.trim());
-      
-      if (lines.length < 2) continue;
-      
-      const passage = lines[0];
-      const question = lines[1] || 'What is the main idea?';
-      const options = lines.slice(2, 6).length >= 4 ? lines.slice(2, 6) : ['A', 'B', 'C', 'D'];
-      const answer = lines[6] ? lines[6].trim() : '0';
-      
-      if (passage.length > 100) {
-        const difficulty = idx < 2 ? 'easy' : idx < 4 ? 'medium' : 'hard';
-        const irt = generateIRTParams(difficulty);
-        
-        items.push({
-          item_id: `toefl-qa-tpo-${idx + 1}`,
-          section: 'reading',
-          type: 'multiple_choice',
-          stage: Math.floor(idx / 3) + 1,
-          difficulty_level: difficulty,
-          content: `${passage}\n\nQuestion: ${question}`,
-          options: options,
-          correct_answer: answer,
-          irt_parameters: irt,
-          metadata: {
-            source: 'TOEFL-QA Dataset (TPO)',
-            original_question: question,
-          },
-        });
-        successCount++;
-      }
-    } catch (error) {
-      // Skip failed URLs silently
-      continue;
-    }
-  }
-  
-  if (items.length > 0) {
-    console.log(`✓ Parsed ${items.length} TOEFL-QA items from ${successCount} TPO files`);
-  } else {
-    console.log('   No TOEFL-QA items fetched, using fallback');
-  }
-  
-  // Add fallback items if we got too few
-  if (items.length < 20) {
-    const fallback = generateFallbackReading(50);
-    items.push(...fallback);
-  }
-  
-  return items;
-}
-
-/**
  * Parse TOEFL Sentence Insertion Dataset
+ * Format: Context: [passage with [A], [B], [C], [D] markers]
+ *         Question: [sentence to insert]
+ *         Answer: [A/B/C/D]
  */
 async function parseSentenceInsertion(): Promise<TOEFLItem[]> {
   console.log('📥 Fetching TOEFL Sentence Insertion dataset...');
@@ -168,84 +95,137 @@ async function parseSentenceInsertion(): Promise<TOEFLItem[]> {
     
     console.log(`   Found ${lines.length} lines`);
     
-    let parsedCount = 0;
-    for (let i = 0; i < lines.length && parsedCount < 40; i++) {
+    let currentContext = '';
+    let currentQuestion = '';
+    let currentAnswer = '';
+    let itemCount = 0;
+    
+    for (let i = 0; i < lines.length && itemCount < 50; i++) {
       const line = lines[i].trim();
       
-      // Skip empty or very short lines
-      if (line.length < 50) continue;
-      
-      // The format appears to be: passage + markers [A] [B] [C] [D] + sentence
-      // Try to find marker patterns
-      const markerMatch = line.match(/\[A\]|\[B\]|\[C\]|\[D\]/);
-      if (!markerMatch) {
-        // No markers found, treat as plain text
-        // Split by double spaces or try to find natural break
-        const parts = line.split('  ').filter(p => p.trim().length > 20);
-        if (parts.length >= 2) {
-          const passage = parts.slice(0, -1).join(' ');
-          const sentence = parts[parts.length - 1];
+      if (line.startsWith('Context:')) {
+        currentContext = line.substring(8).trim();
+      } else if (line.startsWith('Question:')) {
+        currentQuestion = line.substring(9).trim();
+      } else if (line.startsWith('Answer:')) {
+        currentAnswer = line.substring(7).trim();
+        
+        // Now we have a complete item
+        if (currentContext.length > 100 && currentQuestion.length > 10) {
+          const difficulty = itemCount < 17 ? 'easy' : itemCount < 34 ? 'medium' : 'hard';
+          const irt = generateIRTParams(difficulty);
           
-          if (passage.length > 100 && sentence.length > 20) {
-            const difficulty = parsedCount < 13 ? 'easy' : parsedCount < 27 ? 'medium' : 'hard';
-            const irt = generateIRTParams(difficulty);
-            
-            items.push({
-              item_id: `sentence-insert-${parsedCount + 1}`,
-              section: 'reading',
-              type: 'sentence_insertion',
-              stage: Math.floor(parsedCount / 20) + 1,
-              difficulty_level: difficulty,
-              content: `Read the passage. Where should the following sentence be inserted?\n\nPassage:\n${passage.substring(0, 500)}...\n\nSentence:\n"${sentence.substring(0, 200)}"`,
-              options: ['After the first sentence', 'After the second sentence', 'After the third sentence', 'At the end'],
-              correct_answer: String(Math.floor(Math.random() * 4)),
-              irt_parameters: irt,
-              metadata: {
-                source: 'TOEFL Sentence Insertion Dataset',
-                full_passage_length: passage.length,
-              },
-            });
-            parsedCount++;
-          }
-        }
-      } else {
-        // Has markers - extract passage with markers
-        const passageEnd = line.lastIndexOf('[D]') + 3;
-        if (passageEnd > 100 && passageEnd < line.length - 20) {
-          const passage = line.substring(0, passageEnd);
-          const sentence = line.substring(passageEnd).trim();
+          // Map answer letter to index
+          const answerMap: Record<string, string> = { 'A': '0', 'B': '1', 'C': '2', 'D': '3' };
+          const answerIndex = answerMap[currentAnswer] || '0';
           
-          if (sentence.length > 20) {
-            const difficulty = parsedCount < 13 ? 'easy' : parsedCount < 27 ? 'medium' : 'hard';
-            const irt = generateIRTParams(difficulty);
-            
-            items.push({
-              item_id: `sentence-insert-${parsedCount + 1}`,
-              section: 'reading',
-              type: 'sentence_insertion',
-              stage: Math.floor(parsedCount / 20) + 1,
-              difficulty_level: difficulty,
-              content: `Read the passage and decide where the sentence should be inserted.\n\nPassage:\n${passage.substring(0, 600)}\n\nSentence to insert:\n"${sentence.substring(0, 200)}"`,
-              options: ['Position [A]', 'Position [B]', 'Position [C]', 'Position [D]'],
-              correct_answer: String(Math.floor(Math.random() * 4)),
-              irt_parameters: irt,
-              metadata: {
-                source: 'TOEFL Sentence Insertion Dataset',
-                full_passage_length: passage.length,
-              },
-            });
-            parsedCount++;
-          }
+          items.push({
+            item_id: `toefl-sentence-insert-${itemCount + 1}`,
+            section: 'reading',
+            type: 'sentence_insertion',
+            stage: Math.floor(itemCount / 25) + 1,
+            difficulty_level: difficulty,
+            content: `Read the passage. Four positions are marked [A], [B], [C], and [D]. Choose where the following sentence best fits.\n\n**Sentence to insert:**\n"${currentQuestion}"\n\n**Passage:**\n${currentContext}`,
+            options: ['Position [A]', 'Position [B]', 'Position [C]', 'Position [D]'],
+            correct_answer: answerIndex,
+            irt_parameters: irt,
+            metadata: {
+              source: 'TOEFL Sentence Insertion Dataset (EMNLP)',
+              original_answer: currentAnswer,
+              passage_length: currentContext.length,
+            },
+          });
+          
+          itemCount++;
         }
+        
+        // Reset for next item
+        currentContext = '';
+        currentQuestion = '';
+        currentAnswer = '';
       }
     }
     
-    console.log(`✓ Parsed ${items.length} sentence insertion items`);
+    console.log(`✓ Parsed ${items.length} real TOEFL sentence insertion items`);
     return items;
   } catch (error) {
     console.error('✗ Failed to fetch Sentence Insertion data:', error instanceof Error ? error.message : error);
     return [];
   }
+}
+
+/**
+ * Parse TOEFL-QA Dataset (963 questions)
+ * Try multiple file locations
+ */
+async function parseTOEFLQA(): Promise<TOEFLItem[]> {
+  console.log('📥 Fetching TOEFL-QA dataset (963 questions)...');
+  
+  const urls = [
+    'https://raw.githubusercontent.com/iamyuanchung/TOEFL-QA/master/data/toefl_train.json',
+    'https://raw.githubusercontent.com/iamyuanchung/TOEFL-QA/main/data/train.json',
+    'https://raw.githubusercontent.com/iamyuanchung/TOEFL-QA/master/train.json',
+  ];
+  
+  for (const url of urls) {
+    try {
+      console.log(`   Trying: ${url}`);
+      const data = await fetchUrl(url);
+      
+      // Try parsing as JSON Lines (one JSON object per line)
+      const lines = data.trim().split('\n');
+      const items: TOEFLItem[] = [];
+      
+      for (let i = 0; i < Math.min(lines.length, 50); i++) {
+        const line = lines[i].trim();
+        if (!line) continue;
+        
+        try {
+          const entry = JSON.parse(line);
+          const difficulty = i < 17 ? 'easy' : i < 34 ? 'medium' : 'hard';
+          const irt = generateIRTParams(difficulty);
+          
+          // Extract fields from various possible formats
+          const passage = entry.passage || entry.context || entry.story || entry.text || '';
+          const question = entry.question || entry.query || 'What is the main idea?';
+          const options = entry.options || entry.answers || entry.choices || ['A', 'B', 'C', 'D'];
+          const answer = entry.answer || entry.label || entry.correct || '0';
+          
+          if (passage.length > 50) {
+            items.push({
+              item_id: `toefl-qa-${i + 1}`,
+              section: 'reading',
+              type: 'multiple_choice',
+              stage: Math.floor(i / 25) + 1,
+              difficulty_level: difficulty,
+              content: `${passage}\n\nQuestion: ${question}`,
+              options: Array.isArray(options) ? options : ['A', 'B', 'C', 'D'],
+              correct_answer: String(answer),
+              irt_parameters: irt,
+              metadata: {
+                source: 'TOEFL-QA Dataset',
+                original_question: question,
+              },
+            });
+          }
+        } catch (parseError) {
+          // Skip malformed lines
+          continue;
+        }
+      }
+      
+      if (items.length > 0) {
+        console.log(`✓ Parsed ${items.length} TOEFL-QA items`);
+        return items;
+      }
+    } catch (error) {
+      console.log(`   ✗ Failed with this URL`);
+      continue;
+    }
+  }
+  
+  console.log('   Using fallback synthetic reading items');
+  return generateFallbackReading(50);
 }
 
 /**
@@ -296,116 +276,7 @@ async function parseWordlink(): Promise<TOEFLItem[]> {
     console.log(`✓ Parsed ${items.length} vocabulary items`);
     return items;
   } catch (error) {
-    console.log('✗ Wordlink fetch failed, trying castrovictor vocabulary flashcards');
-    return parseVocabularyFlashcards();
-  }
-}
-
-/**
- * Parse castrovictor TOEFL vocabulary flashcards CSV
- */
-async function parseVocabularyFlashcards(): Promise<TOEFLItem[]> {
-  console.log('📥 Fetching vocabulary flashcards CSV...');
-  
-  try {
-    const url = 'https://raw.githubusercontent.com/castrovictor/TOEFL-vocabulary-flashcards/master/toefl_vocab.csv';
-    const data = await fetchUrl(url);
-    
-    const items: TOEFLItem[] = [];
-    const lines = data.split('\n').slice(1); // Skip header
-    
-    for (let i = 0; i < Math.min(lines.length, 40); i++) {
-      const line = lines[i].trim();
-      if (!line) continue;
-      
-      // CSV format: word,definition,example
-      const match = line.match(/^"?([^",]+)"?,\s*"?([^",]+)"?/);
-      if (match) {
-        const word = match[1].trim();
-        const definition = match[2].trim();
-        
-        const difficulty = i < 13 ? 'easy' : i < 27 ? 'medium' : 'hard';
-        const irt = generateIRTParams(difficulty);
-        
-        items.push({
-          item_id: `vocab-flashcard-${i + 1}`,
-          section: 'reading',
-          type: 'vocabulary',
-          stage: Math.floor(i / 20) + 1,
-          difficulty_level: difficulty,
-          content: `The word "${word}" in the passage is closest in meaning to:`,
-          options: [definition.split(/[;,]/)[0].trim(), 'unrelated term', 'opposite meaning', 'different concept'],
-          correct_answer: '0',
-          irt_parameters: irt,
-          metadata: {
-            source: 'TOEFL Vocabulary Flashcards',
-            target_word: word,
-            definition: definition,
-          },
-        });
-      }
-    }
-    
-    console.log(`✓ Parsed ${items.length} vocabulary flashcard items`);
-    return items.length > 0 ? items : parseWordstaVocabulary();
-  } catch (error) {
-    console.log('✗ Vocabulary flashcards fetch failed, trying wordsta');
-    return parseWordstaVocabulary();
-  }
-}
-
-/**
- * Parse surajk95 wordsta vocabulary lists (JS/JSON format)
- */
-async function parseWordstaVocabulary(): Promise<TOEFLItem[]> {
-  console.log('📥 Fetching wordsta vocabulary lists...');
-  
-  try {
-    // Try to fetch wordsta TOEFL vocabulary list
-    const url = 'https://raw.githubusercontent.com/surajk95/wordsta/master/app/lists/toefl.js';
-    const data = await fetchUrl(url);
-    
-    // Extract JSON array from JS file
-    const jsonMatch = data.match(/\[[\s\S]*\]/);
-    if (!jsonMatch) {
-      throw new Error('Could not parse wordsta format');
-    }
-    
-    const words = JSON.parse(jsonMatch[0]);
-    const items: TOEFLItem[] = [];
-    
-    for (let i = 0; i < Math.min(words.length, 50); i++) {
-      const wordData = words[i];
-      const word = wordData.word || wordData.term || '';
-      const definition = wordData.definition || wordData.meaning || '';
-      
-      if (word && definition) {
-        const difficulty = i < 17 ? 'easy' : i < 34 ? 'medium' : 'hard';
-        const irt = generateIRTParams(difficulty);
-        
-        items.push({
-          item_id: `vocab-wordsta-${i + 1}`,
-          section: 'reading',
-          type: 'vocabulary',
-          stage: Math.floor(i / 25) + 1,
-          difficulty_level: difficulty,
-          content: `The word "${word}" in the passage is closest in meaning to:`,
-          options: [definition.split('.')[0].trim(), 'unrelated', 'opposite', 'different'],
-          correct_answer: '0',
-          irt_parameters: irt,
-          metadata: {
-            source: 'Wordsta Vocabulary Lists',
-            target_word: word,
-            definition: definition,
-          },
-        });
-      }
-    }
-    
-    console.log(`✓ Parsed ${items.length} wordsta vocabulary items`);
-    return items.length > 0 ? items : generateVocabularyItems(30);
-  } catch (error) {
-    console.log('✗ Wordsta fetch failed, using generated vocabulary');
+    console.log('✗ Wordlink fetch failed, generating vocabulary items');
     return generateVocabularyItems(30);
   }
 }
@@ -613,12 +484,12 @@ async function main() {
     
     const allItems: TOEFLItem[] = [];
     
-    // Fetch real datasets
-    const qaItems = await parseTOEFLQA();
-    allItems.push(...qaItems);
-    
+    // Fetch real datasets - sentence insertion FIRST (has real passages)
     const sentenceItems = await parseSentenceInsertion();
     allItems.push(...sentenceItems);
+    
+    const qaItems = await parseTOEFLQA();
+    allItems.push(...qaItems);
     
     const vocabItems = await parseWordlink();
     allItems.push(...vocabItems);

@@ -1,22 +1,27 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useExamStore } from '../stores'
 import { ReviewModal } from './ReviewModal'
+import { QuestionDisplay, ReadingQuestion } from './QuestionDisplay'
+import { ListeningQuestionDisplay, ListeningQuestion } from './ListeningQuestionDisplay'
+import { PassageViewer } from './PassageViewer'
+
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000'
 
 /**
  * SectionDisplay Component
  * Displays the current exam section (reading, listening, writing, speaking)
- * Includes ReviewModal integration for question navigation
- * Placeholder implementation - will be expanded in later tasks
+ * Fetches items from backend and renders them using QuestionDisplay components
  */
 export function SectionDisplay() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const { sessionId, currentSection, setCurrentSection } = useExamStore()
-
-  // TODO: Replace with actual question IDs from current module
-  // This will be populated when question display is implemented
-  const currentModuleQuestionIds: string[] = []
+  
+  const [items, setItems] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [currentItemIndex, setCurrentItemIndex] = useState(0)
 
   useEffect(() => {
     // Validate session exists
@@ -31,45 +36,184 @@ export function SectionDisplay() {
     }
   }, [id, sessionId, currentSection, setCurrentSection, navigate])
 
+  // Fetch items for current section
+  useEffect(() => {
+    if (!id) return
+
+    const fetchItems = async () => {
+      try {
+        setLoading(true)
+        setError(null)
+        
+        const response = await fetch(
+          `${API_URL}/api/items/section/${id}?limit=50`,
+          {
+            headers: {
+              'Content-Type': 'application/json',
+            },
+          }
+        )
+
+        if (!response.ok) {
+          throw new Error(`Failed to fetch items: ${response.statusText}`)
+        }
+
+        const data = await response.json()
+        
+        // Transform backend items to frontend format
+        const transformedItems = data.items.map((item: any) => ({
+          id: item.item_id,
+          section: item.section,
+          type: item.type,
+          difficulty_level: item.difficulty_level,
+          stage: item.stage,
+          content: item.content,
+          options: item.options,
+          correct_answer: item.correct_answer,
+          irt_a: item.irt_parameters?.a || 1.0,
+          irt_b: item.irt_parameters?.b || 0.0,
+          irt_c: item.irt_parameters?.c || 0.2,
+          metadata: item.metadata,
+        }))
+
+        setItems(transformedItems)
+      } catch (err) {
+        console.error('Error fetching items:', err)
+        setError(err instanceof Error ? err.message : 'Failed to load items')
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchItems()
+  }, [id])
+
   if (!sessionId) {
     return null
   }
 
+  const currentItem = items[currentItemIndex]
+  const questionIds = items.map(item => item.id)
+
   return (
     <div className="min-h-screen bg-gray-900">
-      {/* Header will be implemented in later tasks */}
+      {/* Header */}
       <header className="bg-gray-800 border-b border-gray-700 p-4">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <h1 className="text-white font-semibold text-lg capitalize">
             {id || 'Section'} Section
           </h1>
-          <div className="text-gray-400 text-sm">
-            Session: {sessionId.substring(0, 16)}...
+          <div className="text-gray-300 text-sm">
+            Question {currentItemIndex + 1} of {items.length}
           </div>
         </div>
       </header>
 
-      {/* Main content area - placeholder */}
+      {/* Main content area */}
       <main className="max-w-7xl mx-auto p-8">
-        <div className="bg-gray-800 rounded-lg p-8 text-center border border-gray-700">
-          <h2 className="text-2xl font-bold text-white mb-4">
-            {id ? `${id.charAt(0).toUpperCase() + id.slice(1)} Section` : 'Section'}
-          </h2>
-          <p className="text-gray-300 mb-6">
-            This section will display exam questions and content.
-          </p>
-          <p className="text-gray-400 text-sm mb-6">
-            Content rendering will be implemented in subsequent tasks.
-          </p>
-          <div className="bg-yellow-900 border border-yellow-600 rounded-lg p-4 text-yellow-200">
-            <p className="font-semibold mb-2">⚠️ Database Needs More Test Items</p>
-            <p className="text-sm">The database currently has only 6 test items. The system needs 150+ items to function properly.</p>
+        {loading && (
+          <div className="bg-gray-800 rounded-lg p-8 text-center border border-gray-700">
+            <div className="flex items-center justify-center space-x-3">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+              <p className="text-gray-300">Loading questions...</p>
+            </div>
           </div>
-        </div>
+        )}
+
+        {error && (
+          <div className="bg-red-900 border border-red-600 rounded-lg p-6 text-center">
+            <p className="text-red-200 font-semibold mb-2">Error Loading Questions</p>
+            <p className="text-red-300 text-sm">{error}</p>
+            <button
+              onClick={() => window.location.reload()}
+              className="mt-4 px-4 py-2 bg-red-700 hover:bg-red-600 text-white rounded transition"
+            >
+              Retry
+            </button>
+          </div>
+        )}
+
+        {!loading && !error && items.length === 0 && (
+          <div className="bg-yellow-900 border border-yellow-600 rounded-lg p-6 text-center">
+            <p className="text-yellow-200 font-semibold mb-2">⚠️ No Questions Available</p>
+            <p className="text-yellow-300 text-sm">
+              This section doesn't have any questions yet. Please contact support.
+            </p>
+          </div>
+        )}
+
+        {!loading && !error && currentItem && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Left side: Question */}
+            <div>
+              {id === 'reading' && (
+                <QuestionDisplay question={currentItem as ReadingQuestion} />
+              )}
+              {id === 'listening' && (
+                <ListeningQuestionDisplay question={currentItem as ListeningQuestion} />
+              )}
+              {(id === 'writing' || id === 'speaking') && (
+                <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
+                  <div className="text-gray-300 space-y-4">
+                    <h3 className="text-xl font-semibold text-white capitalize">{id} Task</h3>
+                    <div className="prose prose-invert max-w-none">
+                      <p className="text-gray-300 whitespace-pre-wrap">{currentItem.content}</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+              
+              {/* Navigation buttons */}
+              <div className="mt-6 flex items-center justify-between">
+                <button
+                  onClick={() => setCurrentItemIndex(Math.max(0, currentItemIndex - 1))}
+                  disabled={currentItemIndex === 0}
+                  className="px-6 py-2 bg-gray-700 hover:bg-gray-600 disabled:bg-gray-800 disabled:text-gray-600 text-white rounded transition"
+                >
+                  ← Previous
+                </button>
+                <button
+                  onClick={() => setCurrentItemIndex(Math.min(items.length - 1, currentItemIndex + 1))}
+                  disabled={currentItemIndex === items.length - 1}
+                  className="px-6 py-2 bg-blue-600 hover:bg-blue-500 disabled:bg-gray-800 disabled:text-gray-600 text-white rounded transition"
+                >
+                  Next →
+                </button>
+              </div>
+            </div>
+
+            {/* Right side: Passage Viewer (for reading section) */}
+            {id === 'reading' && (
+              <div className="lg:sticky lg:top-4 lg:self-start">
+                <PassageViewer
+                  passages={[
+                    {
+                      id: currentItem.id,
+                      title: 'Reading Passage',
+                      content: extractPassageFromContent(currentItem.content),
+                    },
+                  ]}
+                />
+              </div>
+            )}
+          </div>
+        )}
       </main>
 
-      {/* ReviewModal - renders conditionally based on uiStore.isReviewModalOpen */}
-      <ReviewModal questionIds={currentModuleQuestionIds} />
+      {/* ReviewModal */}
+      <ReviewModal questionIds={questionIds} />
     </div>
   )
+}
+
+/**
+ * Extract passage text from question content for PassageViewer
+ */
+function extractPassageFromContent(content: string): string {
+  try {
+    const parsed = JSON.parse(content)
+    return parsed.passage || parsed.context || 'Passage content will appear here.'
+  } catch {
+    return 'Passage content will appear here.'
+  }
 }
