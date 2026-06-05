@@ -9,7 +9,7 @@ import { LockedQuestionIndicator } from './LockedQuestionIndicator'
 export interface ReadingQuestion {
   id: string
   section: 'reading'
-  type: 'complete-words' | 'daily-life' | 'academic-passage' | 'synonym-match' | 'multiple_choice' | 'multiple-choice'
+  type: 'complete-words' | 'daily-life' | 'academic-passage' | 'synonym-match' | 'multiple_choice' | 'multiple-choice' | 'main-idea' | 'detail' | 'inference' | 'vocabulary' | 'reference' | 'sentence-insertion' | 'purpose' | 'factual' | 'negative-fact' | 'summary'
   difficulty_level: 'easy' | 'medium' | 'hard'
   stage: number
   content: string // JSON string containing type-specific content OR plain text
