@@ -9,10 +9,10 @@ import { LockedQuestionIndicator } from './LockedQuestionIndicator'
 export interface ReadingQuestion {
   id: string
   section: 'reading'
-  type: 'complete-words' | 'daily-life' | 'academic-passage' | 'synonym-match'
+  type: 'complete-words' | 'daily-life' | 'academic-passage' | 'synonym-match' | 'multiple_choice' | 'multiple-choice'
   difficulty_level: 'easy' | 'medium' | 'hard'
   stage: number
-  content: string // JSON string containing type-specific content
+  content: string // JSON string containing type-specific content OR plain text
   options?: string[] // For multiple choice questions
   correct_answer?: string
   irt_a: number
@@ -143,6 +143,11 @@ export function QuestionDisplay({
       
       case 'daily-life':
         return renderDailyLifeQuestion(parsedContent as DailyLifeContent)
+      
+      case 'multiple_choice':
+      case 'multiple-choice':
+        // Generic multiple choice - treat as academic passage
+        return renderAcademicPassageQuestion(parsedContent as AcademicPassageContent)
       
       default:
         return (
@@ -347,15 +352,54 @@ export function QuestionDisplay({
 
 /**
  * Parse question content from JSON string
+ * Handles both JSON-formatted content and plain text fallback
  */
 function parseQuestionContent(
   question: ReadingQuestion
 ): CompleteWordsContent | AcademicPassageContent | SynonymMatchContent | DailyLifeContent {
   try {
-    return JSON.parse(question.content)
+    // Try to parse as JSON first
+    const parsed = JSON.parse(question.content)
+    return parsed
   } catch (error) {
-    console.error(`Failed to parse question content for ${question.id}:`, error)
-    return { sentence: 'Error loading question content', context: '' }
+    // If parsing fails, content is plain text - create appropriate structure based on question type
+    console.warn(`Content for ${question.id} is not JSON, using fallback structure`)
+    
+    // For plain text content, create a sensible fallback based on type
+    switch (question.type) {
+      case 'academic-passage':
+      case 'multiple_choice':
+      case 'multiple-choice':
+        return {
+          passage: question.content,
+          question: question.options ? 'Select the best answer based on the passage.' : 'Answer the question based on the passage.'
+        } as AcademicPassageContent
+      
+      case 'complete-words':
+        return {
+          sentence: question.content,
+          context: ''
+        } as CompleteWordsContent
+      
+      case 'synonym-match':
+        return {
+          word: 'Unknown',
+          context: question.content
+        } as SynonymMatchContent
+      
+      case 'daily-life':
+        return {
+          scenario: question.content,
+          question: question.options ? 'Select the best answer.' : 'Answer the question.'
+        } as DailyLifeContent
+      
+      default:
+        // Generic fallback
+        return {
+          sentence: question.content,
+          context: ''
+        } as CompleteWordsContent
+    }
   }
 }
 
