@@ -68,7 +68,7 @@ async function main() {
     // First, delete all placeholder reading items
     console.log('Step 1: Deleting placeholder reading items...');
     const deleteResult = await pool.query(
-      "DELETE FROM toefl_items WHERE section = 'reading'"
+      "DELETE FROM test_items WHERE section = 'reading'"
     );
     console.log(`✅ Deleted ${deleteResult.rowCount} placeholder items\n`);
     
@@ -213,7 +213,7 @@ async function main() {
         });
         
         await pool.query(
-          `INSERT INTO toefl_items (
+          `INSERT INTO test_items (
             item_id, section, type, stage, difficulty_level,
             content, options, correct_answer, irt_parameters, metadata
           ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
@@ -244,7 +244,7 @@ async function main() {
     
     // Verify
     const result = await pool.query(
-      "SELECT COUNT(*) as count FROM toefl_items WHERE section = 'reading'"
+      "SELECT COUNT(*) as count FROM test_items WHERE section = 'reading'"
     );
     console.log(`✅ Verification: ${result.rows[0].count} reading items in database`);
     
