@@ -14,8 +14,6 @@ interface PassageViewerProps {
   onPassageFullyScrolled?: () => void
   /** CSS class name for custom styling */
   className?: string
-  /** Array of question IDs associated with this passage (for gatekeeper locking) */
-  questionIds?: string[]
 }
 
 /**

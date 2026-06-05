@@ -130,6 +130,14 @@ export function ListeningQuestionDisplay({
           <p className="font-medium">Listen to the audio and choose the best response</p>
         </div>
 
+        {/* Transcript (since no real audio) */}
+        {content.transcript && (
+          <div className="bg-gray-800 border border-gray-700 rounded-lg p-4 mb-6">
+            <p className="text-xs uppercase tracking-wide text-gray-500 mb-2">Transcript:</p>
+            <p className="text-gray-300 text-sm leading-relaxed whitespace-pre-wrap">{content.transcript}</p>
+          </div>
+        )}
+
         <div className="text-gray-100 text-lg leading-relaxed mb-6">
           <p className="font-medium">{content.question}</p>
         </div>
@@ -150,6 +158,14 @@ export function ListeningQuestionDisplay({
           <p className="font-medium">Listen to the conversation</p>
         </div>
 
+        {/* Transcript (since no real audio) */}
+        {content.transcript && (
+          <div className="bg-gray-800 border border-gray-700 rounded-lg p-4 mb-6">
+            <p className="text-xs uppercase tracking-wide text-gray-500 mb-2">Transcript:</p>
+            <p className="text-gray-300 text-sm leading-relaxed whitespace-pre-wrap">{content.transcript}</p>
+          </div>
+        )}
+
         <div className="text-gray-100 text-lg leading-relaxed mb-6">
           <p className="font-medium">{content.question}</p>
         </div>
@@ -169,6 +185,14 @@ export function ListeningQuestionDisplay({
         <div className="text-gray-400 text-sm mb-4 p-3 bg-gray-800 rounded border-l-4 border-green-500">
           <p className="font-medium">Listen to the academic lecture</p>
         </div>
+
+        {/* Transcript (since no real audio) */}
+        {content.transcript && (
+          <div className="bg-gray-800 border border-gray-700 rounded-lg p-4 mb-6">
+            <p className="text-xs uppercase tracking-wide text-gray-500 mb-2">Transcript:</p>
+            <p className="text-gray-300 text-sm leading-relaxed whitespace-pre-wrap">{content.transcript}</p>
+          </div>
+        )}
 
         <div className="text-gray-100 text-lg leading-relaxed mb-6">
           <p className="font-medium">{content.question}</p>
@@ -244,19 +268,29 @@ export function ListeningQuestionDisplay({
 }
 
 /**
- * Parse question content from JSON string
+ * Parse question content from JSON string or plain text
+ * Handles both JSON-formatted content and plain text fallback
  */
 function parseQuestionContent(
   question: ListeningQuestion
 ): ChooseResponseContent | ConversationContent | AcademicLectureContent {
   try {
-    return JSON.parse(question.content)
+    // Try to parse as JSON first
+    const parsed = JSON.parse(question.content)
+    return parsed
   } catch (error) {
-    console.error(`Failed to parse question content for ${question.id}:`, error)
-    return { 
-      audioUrl: '', 
-      transcript: 'Error loading question content', 
-      question: '' 
+    // If parsing fails, content is plain text - create fallback structure
+    console.warn(`Content for ${question.id} is not JSON, using plain text as transcript`)
+    
+    // Extract question from content if it exists (look for common question patterns)
+    const questionMatch = question.content.match(/Question:\s*(.+?)(?:\n|$)/i)
+    const extractedQuestion = questionMatch ? questionMatch[1] : 'Listen to the audio and answer the question.'
+    
+    // Use the content as transcript, and create appropriate structure
+    return {
+      audioUrl: '',
+      transcript: question.content,
+      question: extractedQuestion
     }
   }
 }

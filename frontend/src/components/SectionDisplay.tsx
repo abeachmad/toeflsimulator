@@ -5,6 +5,7 @@ import { ReviewModal } from './ReviewModal'
 import { QuestionDisplay, type ReadingQuestion } from './QuestionDisplay'
 import { ListeningQuestionDisplay, type ListeningQuestion } from './ListeningQuestionDisplay'
 import { PassageViewer } from './PassageViewer'
+import { QuestionNavigationMap } from './QuestionNavigationMap'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000'
 
@@ -44,6 +45,7 @@ export function SectionDisplay() {
       try {
         setLoading(true)
         setError(null)
+        setCurrentItemIndex(0) // Reset to first question when section changes
         
         const response = await fetch(
           `${API_URL}/api/items/section/${id}?limit=50`,
@@ -144,6 +146,17 @@ export function SectionDisplay() {
 
       {/* Main content area */}
       <main className="max-w-7xl mx-auto p-8">
+        {/* Question Navigation Map */}
+        {!loading && !error && items.length > 0 && (
+          <div className="mb-6">
+            <QuestionNavigationMap
+              questionIds={questionIds}
+              currentIndex={currentItemIndex}
+              onNavigate={(index) => setCurrentItemIndex(index)}
+            />
+          </div>
+        )}
+
         {loading && (
           <div className="bg-white rounded-lg p-8 text-center border border-gray-300">
             <div className="flex items-center justify-center space-x-3">
@@ -180,7 +193,6 @@ export function SectionDisplay() {
             {id === 'reading' ? (
               <PassageViewer
                 passage={extractPassageFromContent(currentItem.content)}
-                questionIds={questionIds}
               >
                 <QuestionDisplay question={currentItem as ReadingQuestion} />
                 
