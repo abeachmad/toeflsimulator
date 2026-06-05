@@ -106,6 +106,21 @@ export function SectionDisplay() {
 
   const currentItem = items[currentItemIndex]
   const questionIds = items.map(item => item.id)
+  const isLastQuestion = currentItemIndex === items.length - 1
+
+  const handleNext = () => {
+    if (isLastQuestion) {
+      // Navigate to next section
+      const nextSection = id === 'reading' ? 'listening' : id === 'listening' ? 'writing' : id === 'writing' ? 'speaking' : null
+      if (nextSection) {
+        navigate(`/exam/section/${nextSection}`)
+      } else {
+        navigate('/exam/results')
+      }
+    } else {
+      setCurrentItemIndex(currentItemIndex + 1)
+    }
+  }
 
   console.log('[SectionDisplay] Render - items.length:', items.length)
   console.log('[SectionDisplay] Render - currentItemIndex:', currentItemIndex)
@@ -174,16 +189,19 @@ export function SectionDisplay() {
                   <button
                     onClick={() => setCurrentItemIndex(Math.max(0, currentItemIndex - 1))}
                     disabled={currentItemIndex === 0}
-                    className="px-6 py-2 bg-gray-700 hover:bg-gray-600 disabled:bg-gray-800 disabled:text-gray-600 text-white rounded transition"
+                    className="px-6 py-2 bg-gray-200 hover:bg-gray-300 disabled:bg-gray-100 disabled:text-gray-400 text-gray-900 rounded transition"
                   >
                     ← Previous
                   </button>
                   <button
-                    onClick={() => setCurrentItemIndex(Math.min(items.length - 1, currentItemIndex + 1))}
-                    disabled={currentItemIndex === items.length - 1}
-                    className="px-6 py-2 bg-blue-600 hover:bg-blue-500 disabled:bg-gray-800 disabled:text-gray-600 text-white rounded transition"
+                    onClick={handleNext}
+                    className={`px-6 py-2 rounded transition text-white font-semibold ${
+                      isLastQuestion 
+                        ? 'bg-green-600 hover:bg-green-700' 
+                        : 'bg-blue-600 hover:bg-blue-700'
+                    }`}
                   >
-                    Next →
+                    {isLastQuestion ? 'Complete Section →' : 'Next →'}
                   </button>
                 </div>
               </PassageViewer>
@@ -208,16 +226,19 @@ export function SectionDisplay() {
                   <button
                     onClick={() => setCurrentItemIndex(Math.max(0, currentItemIndex - 1))}
                     disabled={currentItemIndex === 0}
-                    className="px-6 py-2 bg-gray-700 hover:bg-gray-600 disabled:bg-gray-800 disabled:text-gray-600 text-white rounded transition"
+                    className="px-6 py-2 bg-gray-200 hover:bg-gray-300 disabled:bg-gray-100 disabled:text-gray-400 text-gray-900 rounded transition"
                   >
                     ← Previous
                   </button>
                   <button
-                    onClick={() => setCurrentItemIndex(Math.min(items.length - 1, currentItemIndex + 1))}
-                    disabled={currentItemIndex === items.length - 1}
-                    className="px-6 py-2 bg-blue-600 hover:bg-blue-500 disabled:bg-gray-800 disabled:text-gray-600 text-white rounded transition"
+                    onClick={handleNext}
+                    className={`px-6 py-2 rounded transition text-white font-semibold ${
+                      isLastQuestion 
+                        ? 'bg-green-600 hover:bg-green-700' 
+                        : 'bg-blue-600 hover:bg-blue-700'
+                    }`}
                   >
-                    Next →
+                    {isLastQuestion ? 'Complete Section →' : 'Next →'}
                   </button>
                 </div>
               </div>
