@@ -45,7 +45,6 @@ However, the revolution also led to increased production of goods, higher standa
 
       <PassageViewer
         passage={passage}
-        questionIds={questionIds}
         onPassageFullyScrolled={() => {
           setHasScrolledToBottom(true)
           console.log('Passage fully scrolled - questions unlocked!')
@@ -229,7 +228,6 @@ export function NoPassageExample() {
 
       <PassageViewer
         passage="" // Empty passage - contentHeight = 0
-        questionIds={questionIds}
       >
         <div className="space-y-8">
           <LockedQuestionIndicator questionId="q1">
