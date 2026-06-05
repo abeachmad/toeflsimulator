@@ -12,7 +12,7 @@ export interface Item {
   id: string;
   section: Section;
   type: string;
-  difficulty_level: DifficultyLevel;
+  difficulty_level?: DifficultyLevel;
   content: string;
   options?: string[];
   correct_answer: string;

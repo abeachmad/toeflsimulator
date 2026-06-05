@@ -128,7 +128,7 @@ export class MSTEngine {
         id: row.item_id,
         section: row.section as Section,
         type: row.type,
-        difficulty_level: row.difficulty_level as DifficultyLevel,
+        difficulty_level: row.difficulty_level as DifficultyLevel | undefined,
         content: row.content,
         options: row.options,
         correct_answer: row.correct_answer,
