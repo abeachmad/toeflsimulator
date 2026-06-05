@@ -944,12 +944,12 @@ export class DataLoader {
    */
   private getSectionColor(section: Section, colors: Record<string, string>): string {
     const sectionColors: Record<Section, string> = {
-      reading: colors.green,
-      listening: colors.blue,
-      writing: colors.yellow,
-      speaking: colors.magenta
+      reading: colors.green || '',
+      listening: colors.blue || '',
+      writing: colors.yellow || '',
+      speaking: colors.magenta || ''
     };
-    return sectionColors[section] || colors.reset;
+    return sectionColors[section] || colors.reset || '';
   }
 
   /**
@@ -957,11 +957,11 @@ export class DataLoader {
    */
   private getDifficultyColor(difficulty: DifficultyLevel, colors: Record<string, string>): string {
     const difficultyColors: Record<DifficultyLevel, string> = {
-      easy: colors.green,
-      medium: colors.yellow,
-      hard: colors.red
+      easy: colors.green || '',
+      medium: colors.yellow || '',
+      hard: colors.red || ''
     };
-    return difficultyColors[difficulty] || colors.reset;
+    return difficultyColors[difficulty] || colors.reset || '';
   }
 
   /**

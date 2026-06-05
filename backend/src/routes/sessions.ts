@@ -137,7 +137,7 @@ router.get('/:sessionId', async (req: Request, res: Response, next: NextFunction
       return;
     }
     
-    const session = await sessionManager.getSession(sessionId);
+    const session = await sessionManager.getSession(validationResult.data);
     
     res.status(200).json({
       message: 'Session retrieved successfully',
@@ -185,7 +185,7 @@ router.put('/:sessionId', validateRequest(updateSessionSchema), async (req: Requ
     // Transform data if needed
     const updateData = { ...req.body };
     
-    const session = await sessionManager.persistSession(sessionId, updateData);
+    const session = await sessionManager.persistSession(validationResult.data, updateData);
     
     res.status(200).json({
       message: 'Session updated successfully',
@@ -229,7 +229,7 @@ router.delete('/:sessionId', async (req: Request, res: Response, next: NextFunct
       return;
     }
     
-    await sessionManager.deleteSession(sessionId);
+    await sessionManager.deleteSession(validationResult.data);
     
     res.status(200).json({
       message: 'Session deleted successfully',

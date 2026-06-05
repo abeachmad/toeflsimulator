@@ -428,8 +428,8 @@ router.get('/stage/:stage', async (req: Request, res: Response, next: NextFuncti
     // Parse query parameters
     const section = req.query.section as string | undefined;
     const difficulty = req.query.difficulty as string | undefined;
-    const limit = Math.min(parseInt(req.query.limit as string, 10) || 50, 100);
-    const offset = parseInt(req.query.offset as string, 10) || 0;
+    const limit = Math.min(parseInt((req.query.limit as string) || '50', 10), 100);
+    const offset = parseInt((req.query.offset as string) || '0', 10);
     
     // Build query with optional filters
     const conditions = ['stage = $1'];
