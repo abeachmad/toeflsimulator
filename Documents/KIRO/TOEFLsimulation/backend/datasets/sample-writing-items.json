@@ -1,0 +1,48 @@
+[
+  {
+    "id": "writing-sample-001",
+    "section": "writing",
+    "type": "academic-discussion",
+    "difficulty_level": "medium",
+    "content": "{\"professorPrompt\":\"In recent years, there has been growing debate about whether universities should prioritize research or teaching. Some argue that research drives innovation and attracts top talent, while others believe that teaching and student development should be the primary focus. What is your perspective on this issue?\",\"peerOpinions\":[\"I believe research should be the priority because it advances knowledge and brings prestige to the institution.\",\"Teaching should come first since students are paying for education, and they deserve quality instruction.\"]}",
+    "correct_answer": "",
+    "irt_a": 1.3,
+    "irt_b": 0.2,
+    "irt_c": 0.0,
+    "metadata": {
+      "dataset": "Sample-Writing",
+      "rubric": "TOEFL-Writing-2026",
+      "wordLimit": 150
+    }
+  },
+  {
+    "id": "writing-sample-002",
+    "section": "writing",
+    "type": "email",
+    "difficulty_level": "medium",
+    "content": "{\"prompt\":\"Write an email to your professor requesting an extension for your research paper due to unexpected personal circumstances. Be professional and provide a reasonable explanation.\",\"wordLimit\":150}",
+    "correct_answer": "",
+    "irt_a": 1.2,
+    "irt_b": 0.0,
+    "irt_c": 0.0,
+    "metadata": {
+      "dataset": "Sample-Writing",
+      "rubric": "TOEFL-Writing-2026"
+    }
+  },
+  {
+    "id": "writing-sample-003",
+    "section": "writing",
+    "type": "build-sentence",
+    "difficulty_level": "easy",
+    "content": "{\"prompt\":\"Complete the sentence using the provided words in the correct order.\",\"words\":[\"however\",\"research\",\"suggests\",\"alternative\"],\"context\":\"Many people believe this theory; _____ recent _____ _____ an _____ explanation.\"}",
+    "correct_answer": "however recent research suggests an alternative",
+    "irt_a": 1.0,
+    "irt_b": -0.5,
+    "irt_c": 0.15,
+    "metadata": {
+      "dataset": "Sample-Writing",
+      "type": "grammar"
+    }
+  }
+]
