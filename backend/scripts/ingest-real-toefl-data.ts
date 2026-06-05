@@ -16,19 +16,16 @@ import { pool } from '../src/config/database.js';
 interface TOEFLItem {
   item_id: string;
   section: 'reading' | 'listening' | 'writing' | 'speaking';
-  item_type: string;
+  type: string;
   stage: number;
-  difficulty_level: number;
-  irt_a: number;
-  irt_b: number;
-  irt_c: number;
-  content: {
-    passage?: string;
-    question: string;
-    options?: string[];
-    correct_answer?: string | number;
-    prompt?: string;
-    rubric?: string;
+  difficulty_level: string;
+  content: string;
+  options: any;
+  correct_answer: string;
+  irt_parameters: {
+    a: number;
+    b: number;
+    c: number;
   };
   metadata: Record<string, any>;
 }
@@ -73,47 +70,126 @@ function generateIRTParams(difficulty: 'easy' | 'medium' | 'hard'): { a: number;
 async function parseTOEFLSentenceInsertion(): Promise<TOEFLItem[]> {
   console.log('📥 Fetching TOEFL Sentence Insertion dataset...');
   
-  const url = 'https://raw.githubusercontent.com/smiles724/TOEFL-Sentence-Insertion-Dataset/main/toefl.txt';
-  const data = await fetchUrl(url);
-  
-  const items: TOEFLItem[] = [];
-  const lines = data.split('\n').filter(line => line.trim());
-  
-  for (let i = 0; i < lines.length && i < 60; i++) {
-    const parts = lines[i].split('\t');
-    if (parts.length < 3) continue;
+  try {
+    const url = 'https://raw.githubusercontent.com/smiles724/TOEFL-Sentence-Insertion-Dataset/main/toefl.txt';
+    const data = await fetchUrl(url);
     
-    const passage = parts[0];
-    const sentence = parts[1];
-    const markers = parts[2];
+    const items: TOEFLItem[] = [];
+    const lines = data.split('\n').filter(line => line.trim());
     
-    const difficulty = i < 20 ? 'easy' : i < 40 ? 'medium' : 'hard';
-    const irt = generateIRTParams(difficulty);
+    console.log(`   Found ${lines.length} lines in dataset`);
     
-    items.push({
-      item_id: `reading-insertion-${i + 1}`,
-      section: 'reading',
-      item_type: 'sentence_insertion',
-      stage: Math.floor(i / 20) + 1,
-      difficulty_level: difficulty === 'easy' ? 1 : difficulty === 'medium' ? 2 : 3,
-      irt_a: irt.a,
-      irt_b: irt.b,
-      irt_c: irt.c,
-      content: {
-        passage: passage,
-        question: `Where would the following sentence best fit in the passage?\n\n"${sentence}"`,
+    for (let i = 0; i < Math.min(lines.length, 60); i++) {
+      const parts = lines[i].split('\t');
+      if (parts.length < 3) continue;
+      
+      const passage = parts[0];
+      const sentence = parts[1];
+      const markers = parts[2];
+      
+      const difficulty = i < 20 ? 'easy' : i < 40 ? 'medium' : 'hard';
+      const irt = generateIRTParams(difficulty);
+      
+      items.push({
+        item_id: `reading-insertion-${i + 1}`,
+        section: 'reading',
+        type: 'sentence_insertion',
+        stage: Math.floor(i / 30) + 1,
+        difficulty_level: difficulty,
+        content: `Passage:\n\n${passage}\n\nInsert the following sentence:\n"${sentence}"`,
         options: ['[A]', '[B]', '[C]', '[D]'],
         correct_answer: markers.charAt(0),
-      },
-      metadata: {
-        source: 'TOEFL Sentence Insertion Dataset',
-        markers: markers,
-      },
-    });
+        irt_parameters: irt,
+        metadata: {
+          source: 'TOEFL Sentence Insertion Dataset',
+          markers: markers,
+        },
+      });
+    }
+    
+    console.log(`✓ Parsed ${items.length} sentence insertion items`);
+    return items;
+  } catch (error) {
+    console.error('✗ Failed to fetch TOEFL Sentence Insertion data:', error);
+    return [];
   }
+}
+
+/**
+ * Parse TOEFL-QA Dataset
+ */
+async function parseTOEFLQA(): Promise<TOEFLItem[]> {
+  console.log('📥 Fetching TOEFL-QA dataset...');
   
-  console.log(`✓ Parsed ${items.length} sentence insertion items`);
-  return items;
+  try {
+    // Try to fetch the actual dataset
+    const url = 'https://raw.githubusercontent.com/iamyuanchung/TOEFL-QA/master/data/toefl_train.json';
+    const data = await fetchUrl(url);
+    const dataset = JSON.parse(data);
+    
+    const items: TOEFLItem[] = [];
+    const entries = Array.isArray(dataset) ? dataset.slice(0, 30) : [];
+    
+    console.log(`   Found ${entries.length} entries in TOEFL-QA dataset`);
+    
+    for (let i = 0; i < entries.length; i++) {
+      const entry = entries[i];
+      const difficulty = i < 10 ? 'easy' : i < 20 ? 'medium' : 'hard';
+      const irt = generateIRTParams(difficulty);
+      
+      items.push({
+        item_id: `reading-qa-${i + 1}`,
+        section: 'reading',
+        type: 'multiple_choice',
+        stage: Math.floor(i / 15) + 1,
+        difficulty_level: difficulty,
+        content: entry.passage || entry.context || 'Sample reading passage',
+        options: entry.options || entry.answers || ['A', 'B', 'C', 'D'],
+        correct_answer: entry.answer || entry.label || 'A',
+        irt_parameters: irt,
+        metadata: {
+          source: 'TOEFL-QA Dataset',
+          question: entry.question || 'What is the main idea?',
+        },
+      });
+    }
+    
+    console.log(`✓ Parsed ${items.length} TOEFL-QA items`);
+    return items;
+  } catch (error) {
+    console.error('✗ Failed to fetch TOEFL-QA data:', error);
+    console.log('   Generating fallback reading comprehension items...');
+    
+    // Fallback: Generate synthetic reading items
+    const items: TOEFLItem[] = [];
+    for (let i = 0; i < 30; i++) {
+      const difficulty = i < 10 ? 'easy' : i < 20 ? 'medium' : 'hard';
+      const irt = generateIRTParams(difficulty);
+      
+      items.push({
+        item_id: `reading-comprehension-${i + 1}`,
+        section: 'reading',
+        type: 'multiple_choice',
+        stage: Math.floor(i / 15) + 1,
+        difficulty_level: difficulty,
+        content: `Sample reading passage ${i + 1}. This is a placeholder passage that would contain academic content about science, history, or literature topics commonly found on the TOEFL exam.`,
+        options: [
+          'The passage primarily discusses the main topic',
+          'The author suggests an alternative viewpoint',
+          'The passage provides supporting evidence',
+          'The passage concludes with a summary'
+        ],
+        correct_answer: '0',
+        irt_parameters: irt,
+        metadata: {
+          source: 'Generated Reading Comprehension',
+        },
+      });
+    }
+    
+    console.log(`✓ Generated ${items.length} fallback reading items`);
+    return items;
+  }
 }
 
 /**
@@ -135,7 +211,12 @@ async function parseWritingPrompts(): Promise<TOEFLItem[]> {
       student1: 'History and literature teach us about human nature and culture, which are essential.',
       student2: 'Science and math are more practical and useful for solving real-world problems.',
     },
-    // Add more writing prompts as needed
+    {
+      professor: 'Dr. Williams',
+      question: 'Some people prefer to work independently, while others prefer to work in teams. Which do you prefer? Use specific reasons and examples to support your preference.',
+      student1: 'Working independently allows for better focus and personal accountability.',
+      student2: 'Team work brings diverse perspectives and shared responsibility.',
+    },
   ];
   
   const items: TOEFLItem[] = [];
@@ -148,19 +229,17 @@ async function parseWritingPrompts(): Promise<TOEFLItem[]> {
     items.push({
       item_id: `writing-discussion-${i + 1}`,
       section: 'writing',
-      item_type: 'academic_discussion',
-      stage: Math.floor(i / 10) + 1,
-      difficulty_level: difficulty === 'easy' ? 1 : difficulty === 'medium' ? 2 : 3,
-      irt_a: irt.a,
-      irt_b: irt.b,
-      irt_c: irt.c,
-      content: {
-        prompt: `Professor ${prompt.professor} asks:\n\n${prompt.question}\n\nStudent responses:\n- ${prompt.student1}\n- ${prompt.student2}\n\nYour response (100 words):`,
-        rubric: 'Your response should clearly state your position, provide relevant examples, and engage with the discussion.',
-      },
+      type: 'academic_discussion',
+      stage: Math.floor(i / 15) + 1,
+      difficulty_level: difficulty,
+      content: `Professor ${prompt.professor} asks:\n\n${prompt.question}\n\nStudent responses:\n- ${prompt.student1}\n- ${prompt.student2}\n\nYour response (100 words):`,
+      options: [],
+      correct_answer: '',
+      irt_parameters: irt,
       metadata: {
         source: 'Generated Academic Discussion',
         professor: prompt.professor,
+        rubric: 'Your response should clearly state your position, provide relevant examples, and engage with the discussion.',
       },
     });
   }
@@ -177,33 +256,39 @@ async function generateListeningItems(): Promise<TOEFLItem[]> {
   
   const items: TOEFLItem[] = [];
   
+  const topics = [
+    'a class assignment',
+    'a scheduling conflict',
+    'academic advice',
+    'a research project',
+    'campus facilities',
+    'course registration',
+  ];
+  
   for (let i = 0; i < 60; i++) {
     const difficulty = i < 20 ? 'easy' : i < 40 ? 'medium' : 'hard';
     const irt = generateIRTParams(difficulty);
+    const topic = topics[i % topics.length];
     
     items.push({
       item_id: `listening-conversation-${i + 1}`,
       section: 'listening',
-      item_type: 'conversation',
-      stage: Math.floor(i / 20) + 1,
-      difficulty_level: difficulty === 'easy' ? 1 : difficulty === 'medium' ? 2 : 3,
-      irt_a: irt.a,
-      irt_b: irt.b,
-      irt_c: irt.c,
-      content: {
-        passage: `[Audio file for conversation ${i + 1}]`,
-        question: `What is the main purpose of the conversation?`,
-        options: [
-          'To discuss a class assignment',
-          'To schedule an appointment',
-          'To ask for advice',
-          'To complain about a problem',
-        ],
-        correct_answer: Math.floor(Math.random() * 4),
-      },
+      type: 'conversation',
+      stage: Math.floor(i / 30) + 1,
+      difficulty_level: difficulty,
+      content: `[Audio conversation ${i + 1} about ${topic}]\n\nIn this conversation, two people discuss ${topic}. Listen carefully and answer the following question.`,
+      options: [
+        'To discuss a class assignment',
+        'To schedule an appointment',
+        'To ask for advice',
+        'To complain about a problem',
+      ],
+      correct_answer: String(Math.floor(Math.random() * 4)),
+      irt_parameters: irt,
       metadata: {
         source: 'Generated Listening',
         audio_url: `/audio/listening-${i + 1}.mp3`,
+        topic: topic,
       },
     });
   }
@@ -225,31 +310,34 @@ async function insertItems(items: TOEFLItem[]): Promise<void> {
     try {
       await pool.query(
         `INSERT INTO test_items (
-          item_id, section, item_type, stage, difficulty_level,
-          irt_a, irt_b, irt_c, content, metadata
+          item_id, section, type, stage, difficulty_level,
+          content, options, correct_answer, irt_parameters, metadata
         ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
         ON CONFLICT (item_id) DO NOTHING`,
         [
           item.item_id,
           item.section,
-          item.item_type,
+          item.type,
           item.stage,
           item.difficulty_level,
-          item.irt_a,
-          item.irt_b,
-          item.irt_c,
-          JSON.stringify(item.content),
+          item.content,
+          JSON.stringify(item.options),
+          item.correct_answer,
+          JSON.stringify(item.irt_parameters),
           JSON.stringify(item.metadata),
         ]
       );
       inserted++;
+      if (inserted % 10 === 0) {
+        process.stdout.write(`   → Inserted ${inserted}/${items.length} items...\r`);
+      }
     } catch (error) {
-      console.error(`✗ Failed to insert ${item.item_id}:`, error);
+      console.error(`\n✗ Failed to insert ${item.item_id}:`, error instanceof Error ? error.message : error);
       failed++;
     }
   }
   
-  console.log(`\n✅ Ingestion completed!`);
+  console.log(`\n\n✅ Ingestion completed!`);
   console.log(`✓ Items inserted: ${inserted}`);
   console.log(`✗ Items failed: ${failed}`);
 }
@@ -267,6 +355,9 @@ async function main() {
     const sentenceItems = await parseTOEFLSentenceInsertion();
     allItems.push(...sentenceItems);
     
+    const qaItems = await parseTOEFLQA();
+    allItems.push(...qaItems);
+    
     const writingItems = await parseWritingPrompts();
     allItems.push(...writingItems);
     
@@ -282,9 +373,16 @@ async function main() {
     await insertItems(allItems);
     
     // Check database status
-    const result = await pool.query('SELECT COUNT(*) FROM test_items');
-    console.log(`\n📈 Total items in database: ${result.rows[0].count}`);
+    const result = await pool.query('SELECT section, COUNT(*) as count FROM test_items GROUP BY section ORDER BY section');
+    console.log(`\n📈 Items by section in database:`);
+    result.rows.forEach((row: any) => {
+      console.log(`   - ${row.section}: ${row.count}`);
+    });
     
+    const totalResult = await pool.query('SELECT COUNT(*) as total FROM test_items');
+    console.log(`\n📦 Total items in database: ${totalResult.rows[0].total}`);
+    
+    await pool.end();
     process.exit(0);
   } catch (error) {
     console.error('❌ Error during ingestion:', error);
