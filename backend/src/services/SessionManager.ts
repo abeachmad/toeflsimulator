@@ -70,7 +70,7 @@ export interface UpdateSessionRequest {
 export class SessionManager {
   // For future state migrations - currently unused but reserved for schema versioning
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  private readonly STATE_VERSION = 1;
+  private readonly _STATE_VERSION = 1;
   
   constructor(private db: Pool) {}
 
@@ -375,7 +375,7 @@ export class SessionManager {
   async canNavigateToQuestion(
     sessionId: string, 
     targetModuleId: string, 
-    targetQuestionIndex?: number
+    _targetQuestionIndex?: number
   ): Promise<boolean> {
     const session = await this.getSession(sessionId);
     
