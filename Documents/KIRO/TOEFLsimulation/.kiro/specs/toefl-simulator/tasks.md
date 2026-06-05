@@ -203,7 +203,7 @@ This implementation plan breaks down the TOEFL iBT 2026 Test Simulator into disc
 
 ### Phase 5: Backend API Endpoints
 
-- [ ] 9. Implement Express API server with middleware
+- [x] 9. Implement Express API server with middleware
   - [x] 9.1 Create Express app with core middleware
     - Configure CORS with whitelist for authorized domains
     - Add body-parser for JSON payloads
@@ -455,15 +455,15 @@ This implementation plan breaks down the TOEFL iBT 2026 Test Simulator into disc
 
 ### Phase 11: Frontend Components - Writing Section
 
-- [ ] 18. Implement Writing section components
-  - [ ] 18.1 Create `TextEditor` component
+- [x] 18. Implement Writing section components
+  - [x] 18.1 Create `TextEditor` component
     - Use textarea with controlled input
     - Implement real-time word count display
     - Add cut, paste, undo controls (browser native)
     - Style with official ETS text editor design
     - _Requirements: 5.3, 5.4, 10.5_
 
-  - [ ] 18.2 Implement writing submission flow
+  - [x] 18.2 Implement writing submission flow
     - Capture textarea content on module submit
     - Send to backend API POST /api/grade/writing
     - Display loading state during grading
@@ -471,7 +471,7 @@ This implementation plan breaks down the TOEFL iBT 2026 Test Simulator into disc
     - Handle API errors gracefully (display fallback scores)
     - _Requirements: 5.5, 5.6, 5.7, 5.8, 19.2_
 
-  - [ ] 18.3 Write unit tests for Writing section components
+  - [x] 18.3 Write unit tests for Writing section components
     - Test TextEditor word count calculation
     - Test writing submission API call
     - Test error handling for API failures
@@ -479,8 +479,8 @@ This implementation plan breaks down the TOEFL iBT 2026 Test Simulator into disc
 
 ### Phase 12: Frontend Components - Speaking Section
 
-- [ ] 19. Implement Speaking section components
-  - [ ] 19.1 Create `AudioRecorder` component
+- [x] 19. Implement Speaking section components
+  - [x] 19.1 Create `AudioRecorder` component
     - Request microphone permissions using navigator.mediaDevices.getUserMedia
     - Display recording status (recording, paused, stopped)
     - Implement start/stop recording controls
@@ -488,7 +488,7 @@ This implementation plan breaks down the TOEFL iBT 2026 Test Simulator into disc
     - Display recording duration timer
     - _Requirements: 6.3, 20.1, 20.2, 20.3_
 
-  - [ ] 19.2 Implement audio processing and upload
+  - [x] 19.2 Implement audio processing and upload
     - Check file size after recording completes
     - Compress audio if size > 10MB using Web Audio API or external library
     - Upload audio to POST /api/grade/speaking using FormData
@@ -497,7 +497,7 @@ This implementation plan breaks down the TOEFL iBT 2026 Test Simulator into disc
     - Handle microphone access denial (display error, allow section skip)
     - _Requirements: 20.4, 20.5, 20.6, 20.7_
 
-  - [ ] 19.3 Write unit tests for Speaking section components
+  - [x] 19.3 Write unit tests for Speaking section components
     - Mock MediaRecorder API
     - Test recording start/stop
     - Test audio upload flow
@@ -506,15 +506,15 @@ This implementation plan breaks down the TOEFL iBT 2026 Test Simulator into disc
 
 ### Phase 13: Frontend Components - Score Report
 
-- [ ] 20. Implement score report and final display
-  - [ ] 20.1 Create `ScoreReport` component
+- [x] 20. Implement score report and final display
+  - [x] 20.1 Create `ScoreReport` component
     - Display dual scoring: CEFR band [1-6] and Equivalent score [0-30] per section
     - Calculate and display total score (sum of four section equivalent scores, 0-120 range)
     - Display section-by-section breakdown
     - Style with official ETS score report design
     - _Requirements: 9.1, 9.2, 9.4, 9.5_
 
-  - [ ] 20.2 Write unit tests for ScoreReport
+  - [x] 20.2 Write unit tests for ScoreReport
     - Test score display for all sections
     - Test total score calculation
     - Test rendering with missing scores (handle gracefully)
@@ -522,61 +522,61 @@ This implementation plan breaks down the TOEFL iBT 2026 Test Simulator into disc
 
 ### Phase 14: Integration and Error Handling
 
-- [ ] 21. Implement comprehensive error handling
-  - [ ] 21.1 Implement network error recovery
+- [x] 21. Implement comprehensive error handling
+  - [x] 21.1 Implement network error recovery
     - Queue failed API requests in IndexedDB
     - Implement exponential backoff retry (initial 1s, max 30s)
     - Display connectivity status indicator in UI
     - Sync queued requests when connection restored
     - _Requirements: 19.1_
 
-  - [ ] 21.2 Implement Gemini API error handling
+  - [x] 21.2 Implement Gemini API error handling
     - Implement circuit breaker pattern (5 failures → 30s cooldown)
     - Return fallback scores on API errors
     - Display warning about manual review
     - Queue responses for retry batch processing
     - _Requirements: 17.5, 19.2_
 
-  - [ ] 21.3 Implement timer service fallback
+  - [x] 21.3 Implement timer service fallback
     - Fall back to client-side timer if server unreachable
     - Display warning icon for local timer mode
     - Attempt server sync every 30 seconds
     - Flag session for manual review
     - _Requirements: 19.3_
 
-  - [ ] 21.4 Implement error logging
+  - [x] 21.4 Implement error logging
     - Create error logging service with structured logs
     - Log all errors with sessionId, userId, error category, severity, context
     - Send error logs to backend for centralized tracking
     - _Requirements: 19.6_
 
-  - [ ] 21.5 Implement React error boundaries
+  - [x] 21.5 Implement React error boundaries
     - Create `ExamErrorBoundary` component
     - Display user-friendly error fallback UI
     - Log errors with component stack trace
     - Provide "Contact Support" option
     - _Requirements: 19.4, 19.5_
 
-  - [ ] 21.6 Write integration tests for error handling
+  - [x] 21.6 Write integration tests for error handling
     - Test network failure recovery
     - Test API error fallback
     - Test error boundary rendering
     - _Requirements: 19.1, 19.2, 19.4_
 
-- [ ] 22. Checkpoint - Error handling and integration complete
+- [x] 22. Checkpoint - Error handling and integration complete
   - Ensure all tests pass, ask the user if questions arise.
 
 ### Phase 15: Styling and Accessibility
 
-- [ ] 23. Implement official ETS UI styling with TailwindCSS
-  - [ ] 23.1 Configure TailwindCSS theme
+- [x] 23. Implement official ETS UI styling with TailwindCSS
+  - [x] 23.1 Configure TailwindCSS theme
     - Define color palette (dark charcoal/navy header, official ETS colors)
     - Define typography (official ETS fonts)
     - Define spacing and layout utilities
     - Configure responsive breakpoints
     - _Requirements: 10.1, 10.2, 10.6_
 
-  - [ ] 23.2 Style all components with official ETS design
+  - [x] 23.2 Style all components with official ETS design
     - Apply header styling (dark background, white text)
     - Apply split-screen layout for reading passages
     - Apply question styling (radio buttons, text inputs, textareas)
@@ -585,72 +585,72 @@ This implementation plan breaks down the TOEFL iBT 2026 Test Simulator into disc
     - Ensure responsive layout for different screen sizes
     - _Requirements: 10.1, 10.2, 10.3, 10.4, 10.5, 10.6_
 
-  - [ ] 23.3 Write snapshot tests for UI components
+  - [x] 23.3 Write snapshot tests for UI components
     - Capture snapshots of all major components
     - Verify consistent rendering across updates
     - _Requirements: 10.1, 10.2_
 
-- [ ] 24. Implement accessibility features (WCAG 2.1 AA compliance)
-  - [ ] 24.1 Add ARIA labels and roles
+- [x] 24. Implement accessibility features (WCAG 2.1 AA compliance)
+  - [x] 24.1 Add ARIA labels and roles
     - Add ARIA labels to all interactive elements (buttons, inputs, modals)
     - Add ARIA roles for semantic structure (navigation, main, complementary)
     - Add ARIA live regions for dynamic content (timer, status messages)
     - Add ARIA descriptions for complex components
     - _Requirements: 23.1, 23.4_
 
-  - [ ] 24.2 Implement keyboard navigation
+  - [x] 24.2 Implement keyboard navigation
     - Enable Tab navigation through all interactive elements
     - Add keyboard shortcuts for common actions (submit, review, next/prev)
     - Ensure focus indicators are visible (outline or custom styling)
     - Trap focus within modals when open
     - _Requirements: 23.2, 23.4_
 
-  - [ ] 24.3 Ensure color contrast and text alternatives
+  - [x] 24.3 Ensure color contrast and text alternatives
     - Verify color contrast ratios meet WCAG AA (4.5:1 for normal text, 3:1 for large text)
     - Add text alternatives for audio content in listening section
     - Provide alternative text for all images and icons
     - _Requirements: 23.3, 23.5_
 
-  - [ ] 24.4 Implement extended time accommodations
+  - [x] 24.4 Implement extended time accommodations
     - Add extended time configuration in user profile
     - Adjust timer duration based on accommodation settings
     - _Requirements: 23.6_
 
-  - [ ] 24.5 Write accessibility tests
+  - [x] 24.5 Write accessibility tests
     - Run axe-core automated scanning
     - Test keyboard-only navigation flows
     - Test screen reader announcements (manual testing notes)
-    - _Requirements: 23.1, 23.2, 23.3, 23.4_
+    - _Requirements: 23.1, 23.2, 23.3, 23.4, 23.5, 23.6_nts: 23.1, 23.2, 23.3, 23.4_
 
 ### Phase 16: Performance Optimization and Caching
 
-- [ ] 25. Implement performance optimizations
-  - [ ] 25.1 Optimize database queries
+- [x] 25. Implement performance optimizations
+  - [x] 25.1 Optimize database queries
     - Implement connection pooling (pg Pool)
     - Add database indexes on frequently queried fields (verify existing indexes)
     - Optimize JSONB queries with GIN indexes
     - _Requirements: 21.4_
 
-  - [ ] 25.2 Implement Redis caching
+  - [x] 25.2 Implement Redis caching
     - Configure Redis client with connection pooling
     - Cache frequently accessed test items (TTL 1 hour)
     - Cache CEFR conversion table (TTL 24 hours)
     - Implement cache invalidation strategy
     - _Requirements: 21.5_
 
-  - [ ] 25.3 Optimize frontend performance
+  - [x] 25.3 Optimize frontend performance
     - Implement React.memo for expensive components
     - Use React.lazy for code splitting (route-based splitting)
     - Optimize bundle size with Vite build optimization
     - Implement image lazy loading (if applicable)
     - _Requirements: 21.2_
 
-  - [ ] 25.4 Compress API responses
+  - [x] 25.4 Compress API responses
     - Enable gzip/brotli compression in Express
     - Compress JSON responses over 1KB
     - _Requirements: 21.6_
 
-  - [ ] 25.5 Write performance tests
+  - [x] 25.5 Write performance tests
     - Test database query performance (verify <500ms for ability calculation)
     - Test API response times (verify <500ms p95)
     - Test frontend rendering (verify <200ms question load)
@@ -658,33 +658,33 @@ This implementation plan breaks down the TOEFL iBT 2026 Test Simulator into disc
 
 ### Phase 17: Security Hardening
 
-- [ ] 26. Implement security features
-  - [ ] 26.1 Add input validation and sanitization
+- [x] 26. Implement security features
+  - [x] 26.1 Add input validation and sanitization
     - Create validation middleware for all API endpoints
     - Sanitize user inputs (text editor, text inputs) to prevent XSS
     - Validate request bodies against JSON schemas
     - Reject SQL injection patterns
     - _Requirements: 22.4_
 
-  - [ ] 26.2 Implement authentication and authorization (placeholder for MVP)
+  - [x] 26.2 Implement authentication and authorization (placeholder for MVP)
     - Hash and salt passwords using bcrypt
     - Implement JWT-based session authentication
     - Add authentication middleware to protected routes
     - _Requirements: 22.2_
 
-  - [ ] 26.3 Configure HTTPS/TLS
+  - [x] 26.3 Configure HTTPS/TLS
     - Generate SSL certificates for development (self-signed)
     - Configure Express to use HTTPS
     - Enforce HTTPS redirect (if applicable)
     - _Requirements: 22.1_
 
-  - [ ] 26.4 Add CORS and rate limiting
+  - [x] 26.4 Add CORS and rate limiting
     - Configure CORS whitelist for authorized domains
     - Implement rate limiting (100 requests/minute per IP)
     - Add rate limiting for API endpoints (separate limits for grading endpoints)
     - _Requirements: 22.3, 22.5_
 
-  - [ ] 26.5 Write security tests
+  - [x] 26.5 Write security tests
     - Test input validation rejects malicious inputs
     - Test rate limiting enforcement
     - Test CORS policy
@@ -692,14 +692,14 @@ This implementation plan breaks down the TOEFL iBT 2026 Test Simulator into disc
 
 ### Phase 18: End-to-End Testing and Deployment
 
-- [ ] 27. Implement end-to-end tests with Playwright
-  - [ ] 27.1 Set up Playwright test environment
+- [x] 27. Implement end-to-end tests with Playwright
+  - [x] 27.1 Set up Playwright test environment
     - Configure Playwright with browsers (Chromium, Firefox, WebKit)
     - Set up test database seeding
     - Configure test environment variables
     - _Requirements: Testing Strategy (Design Document)_
 
-  - [ ] 27.2 Write E2E tests for complete exam flows
+  - [x] 27.2 Write E2E tests for complete exam flows
     - Test user registration and login
     - Test complete 90-minute exam with all sections (use shortened timer for test)
     - Test browser refresh during exam (state restoration)
@@ -708,20 +708,20 @@ This implementation plan breaks down the TOEFL iBT 2026 Test Simulator into disc
     - Test score report display
     - _Requirements: 1.3, 2.4, 12.1, 9.4_
 
-  - [ ] 27.3 Write E2E tests for adaptive routing
+  - [x] 27.3 Write E2E tests for adaptive routing
     - Test Stage 1 module completion triggers ability calculation
     - Test routing to Easy, Medium, Hard Stage 2 modules based on ability
     - Test module navigation restrictions
     - _Requirements: 3.4, 3.6, 3.7, 3.8, 8.1, 13.1, 13.5_
 
-  - [ ] 27.4 Write E2E tests for error scenarios
+  - [x] 27.4 Write E2E tests for error scenarios
     - Test network disconnection and recovery
     - Test API failures with fallback behavior
     - Test microphone access denial
     - _Requirements: 19.1, 19.2, 20.7_
 
-- [ ] 28. Create Docker deployment configuration
-  - [ ] 28.1 Create Dockerfile for backend
+- [x] 28. Create Docker deployment configuration
+  - [x] 28.1 Create Dockerfile for backend
     - Use Node.js 20+ base image
     - Copy package files and install dependencies
     - Copy source code and build TypeScript
@@ -729,7 +729,7 @@ This implementation plan breaks down the TOEFL iBT 2026 Test Simulator into disc
     - Set environment variables (database URL, Gemini API key, Redis URL)
     - _Requirements: Deployment (Design Overview)_
 
-  - [ ] 28.2 Create Dockerfile for frontend
+  - [x] 28.2 Create Dockerfile for frontend
     - Use Node.js base image for build stage
     - Build React app with Vite
     - Use Nginx base image for serve stage
@@ -737,27 +737,27 @@ This implementation plan breaks down the TOEFL iBT 2026 Test Simulator into disc
     - Configure Nginx reverse proxy to backend API
     - _Requirements: Deployment (Design Overview)_
 
-  - [ ] 28.3 Create Docker Compose configuration
+  - [x] 28.3 Create Docker Compose configuration
     - Define services: frontend, backend, PostgreSQL, Redis
     - Configure networking between services
     - Set up volume mounts for database persistence
     - Configure health checks
     - _Requirements: Deployment (Design Overview)_
 
-  - [ ] 28.4 Write deployment documentation
+  - [x] 28.4 Write deployment documentation
     - Document environment variables required
     - Document database migration steps
     - Document data seeding process
     - Document scaling considerations
     - _Requirements: 21.1_
 
-- [ ] 29. Final checkpoint - End-to-end testing complete
+- [x] 29. Final checkpoint - End-to-end testing complete
   - Ensure all tests pass, ask the user if questions arise.
 
 ### Phase 19: Load Testing and Production Readiness
 
-- [ ] 30. Implement load testing
-  - [ ] 30.1 Create load test scenarios with Artillery or k6
+- [x] 30. Implement load testing
+  - [x] 30.1 Create load test scenarios with Artillery or k6
     - Test 100 concurrent exam sessions
     - Test database query performance under load
     - Test Gemini API rate limiting behavior
@@ -765,14 +765,14 @@ This implementation plan breaks down the TOEFL iBT 2026 Test Simulator into disc
     - Measure response time percentiles (p50, p95, p99)
     - _Requirements: 21.1, 21.2, 21.3_
 
-  - [ ] 30.2 Analyze and optimize bottlenecks
+  - [x] 30.2 Analyze and optimize bottlenecks
     - Identify slow database queries and optimize
     - Identify API endpoints with high latency
     - Optimize Gemini API retry logic and batching
     - Scale Redis cache if needed
     - _Requirements: 21.1, 21.4, 21.5_
 
-  - [ ] 30.3 Verify performance targets met
+  - [x] 30.3 Verify performance targets met
     - Page load < 2 seconds
     - Question display < 200ms
     - API response < 500ms (p95)
@@ -780,7 +780,7 @@ This implementation plan breaks down the TOEFL iBT 2026 Test Simulator into disc
     - 100+ concurrent users without degradation
     - _Requirements: 21.2, 21.3_
 
-- [ ] 31. Final production readiness checklist
+- [x] 31. Final production readiness checklist
   - Verify all 13 property-based tests passing with 100 iterations each
   - Verify unit test coverage ≥ 80%
   - Verify integration tests cover all critical flows
