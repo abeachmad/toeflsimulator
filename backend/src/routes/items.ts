@@ -244,8 +244,8 @@ router.get('/section/:section', async (req: Request, res: Response, next: NextFu
     }
     
     // Parse limit and offset from query params
-    const limit = Math.min(parseInt(req.query.limit as string, 10) || 50, 100);
-    const offset = parseInt(req.query.offset as string, 10) || 0;
+    const limit = Math.min(parseInt((req.query.limit as string) || '50', 10), 100);
+    const offset = parseInt((req.query.offset as string) || '0', 10);
     
     // Get total count for section
     const countQuery = 'SELECT COUNT(*) as total FROM test_items WHERE section = $1';
@@ -327,8 +327,8 @@ router.get('/difficulty/:difficulty', async (req: Request, res: Response, next: 
     // Parse query parameters
     const section = req.query.section as string | undefined;
     const stage = req.query.stage ? parseInt(req.query.stage as string, 10) : undefined;
-    const limit = Math.min(parseInt(req.query.limit as string, 10) || 50, 100);
-    const offset = parseInt(req.query.offset as string, 10) || 0;
+    const limit = Math.min(parseInt((req.query.limit as string) || '50', 10), 100);
+    const offset = parseInt((req.query.offset as string) || '0', 10);
     
     // Build query with optional filters
     const conditions = ['difficulty_level = $1'];
