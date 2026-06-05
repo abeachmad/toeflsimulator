@@ -33,8 +33,8 @@ export function ExamStart() {
 
   const handleStartNewSession = async () => {
     try {
-      // Generate new session ID
-      const newSessionId = `session-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+      // Generate new user ID (frontend-generated identifier)
+      const userId = `user-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
 
       // Initialize session on backend
       const apiUrl = import.meta.env.VITE_API_URL || ''
@@ -44,7 +44,8 @@ export function ExamStart() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          sessionId: newSessionId,
+          userId: userId,
+          moduleName: 'reading',
         }),
       })
 
@@ -52,9 +53,12 @@ export function ExamStart() {
         throw new Error('Failed to initialize session')
       }
 
+      const result = await response.json()
+      const sessionId = result.data.sessionId
+
       // Initialize local store
       setSession({
-        sessionId: newSessionId,
+        sessionId: sessionId,
         currentSection: 'reading',
         currentModule: null,
         currentQuestionIndex: 0,
