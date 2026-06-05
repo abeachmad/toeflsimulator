@@ -236,10 +236,16 @@ export function SectionDisplay() {
  * Extract passage text from question content for PassageViewer
  */
 function extractPassageFromContent(content: string): string {
+  if (!content) return ''
+  
   try {
     const parsed = JSON.parse(content)
-    return parsed.passage || parsed.context || 'Passage content will appear here.'
+    // Try multiple possible fields for passage content
+    return parsed.passage || parsed.text || parsed.scenario || ''
   } catch {
-    return 'Passage content will appear here.'
+    // If content is not JSON, treat it as plain text passage
+    // This handles multiple_choice questions where content IS the passage
+    const trimmed = content.trim()
+    return trimmed
   }
 }
