@@ -1,0 +1,21 @@
+# Railway Configuration for Monorepo
+# Root directories must be set in Railway dashboard for each service:
+# - Backend service: Root Directory = /backend
+# - Frontend service: Root Directory = /frontend
+
+[build]
+builder = "NIXPACKS"
+
+# Backend service configuration
+[environments.production.backend.build]
+builder = "NIXPACKS"
+
+[environments.production.backend.deploy]
+startCommand = "npm run dev"
+
+# Frontend service configuration  
+[environments.production.frontend.build]
+builder = "NIXPACKS"
+
+[environments.production.frontend.deploy]
+startCommand = "npm run dev -- --host 0.0.0.0"
