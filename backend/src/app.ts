@@ -138,6 +138,166 @@ app.get('/db-status', async (_req: Request, res: Response) => {
   }
 });
 
+// One-time database seeding endpoint (REMOVE AFTER FIRST USE)
+app.post('/seed-database', async (_req: Request, res: Response) => {
+  try {
+    const { pool } = await import('./config/database.js');
+    const { DataLoader } = await import('./services/DataLoader.js');
+    
+    // Check if already seeded
+    const itemsCount = await pool.query('SELECT COUNT(*) FROM test_items');
+    const existingItems = parseInt(itemsCount.rows[0].count);
+    
+    if (existingItems >= 150) {
+      return res.status(200).json({
+        status: 'already_seeded',
+        message: 'Database already contains test items',
+        existing_items: existingItems,
+      });
+    }
+    
+    console.log('🌱 Starting database seeding...');
+    
+    const dataLoader = new DataLoader(pool);
+    
+    // Import seed functions (inline to avoid file system complexity)
+    const { generateListeningItems, generateSpeakingItems, generateWritingItems } = await (async () => {
+      // Generate IRT parameters
+      function generateIRTParameters(difficulty: 'easy' | 'medium' | 'hard') {
+        const params = {
+          easy: { a: 1.0 + Math.random() * 0.5, b: -1.5 + Math.random() * 0.8, c: 0.2 + Math.random() * 0.05 },
+          medium: { a: 1.2 + Math.random() * 0.6, b: -0.5 + Math.random() * 1.0, c: 0.15 + Math.random() * 0.1 },
+          hard: { a: 1.5 + Math.random() * 0.8, b: 0.7 + Math.random() * 1.0, c: 0.1 + Math.random() * 0.1 }
+        };
+        return params[difficulty];
+      }
+      
+      return {
+        generateListeningItems: () => {
+          const items = [];
+          const types = ['conversation', 'academic-lecture', 'choose-response'];
+          for (let i = 0; i < 60; i++) {
+            const type = types[i % types.length];
+            const difficulty = i < 20 ? 'easy' : i < 40 ? 'medium' : 'hard';
+            const stage = i < 30 ? 1 : 2;
+            items.push({
+              id: `listening-${i + 1}`,
+              section: 'listening',
+              type,
+              difficulty_level: difficulty,
+              stage,
+              content: JSON.stringify({ question: `Listening question ${i + 1}`, audioUrl: `/audio/sample.mp3` }),
+              options: ['Option A', 'Option B', 'Option C', 'Option D'],
+              correct_answer: 'Option A',
+              ...generateIRTParameters(difficulty),
+              metadata: { dataset: 'Synthetic', stage }
+            });
+          }
+          return items;
+        },
+        generateSpeakingItems: () => {
+          const items = [];
+          for (let i = 0; i < 15; i++) {
+            const difficulty = i < 5 ? 'easy' : i < 10 ? 'medium' : 'hard';
+            items.push({
+              id: `speaking-${i + 1}`,
+              section: 'speaking',
+              type: 'simulated-interview',
+              difficulty_level: difficulty,
+              content: JSON.stringify({ question: `Speaking question ${i + 1}`, preparationTime: 15, responseTime: 45 }),
+              correct_answer: '',
+              ...generateIRTParameters(difficulty),
+              metadata: { dataset: 'Synthetic' }
+            });
+          }
+          return items;
+        },
+        generateWritingItems: () => {
+          const items = [];
+          const types = ['build-sentence', 'email', 'academic-discussion'];
+          for (let i = 0; i < 30; i++) {
+            const type = types[i % types.length];
+            const difficulty = 'medium';
+            const stage = i < 15 ? 1 : 2;
+            items.push({
+              id: `writing-${i + 1}`,
+              section: 'writing',
+              type,
+              difficulty_level: difficulty,
+              stage,
+              content: JSON.stringify({ prompt: `Writing prompt ${i + 1}` }),
+              correct_answer: '',
+              ...generateIRTParameters(difficulty),
+              metadata: { dataset: 'Synthetic', rubric: 'TOEFL-Writing-2026', stage }
+            });
+          }
+          return items;
+        }
+      };
+    })();
+    
+    // Generate reading items
+    const readingItems = [];
+    for (let i = 0; i < 60; i++) {
+      const difficulty = i < 20 ? 'easy' : i < 40 ? 'medium' : 'hard';
+      const stage = i < 30 ? 1 : 2;
+      readingItems.push({
+        id: `reading-${i + 1}`,
+        section: 'reading',
+        type: 'academic-passage',
+        difficulty_level: difficulty,
+        stage,
+        content: JSON.stringify({
+          passage: `Sample academic passage ${i + 1} about various topics.`,
+          question: `What is the main idea of paragraph ${i % 5 + 1}?`
+        }),
+        options: ['Main idea A', 'Main idea B', 'Main idea C', 'Main idea D'],
+        correct_answer: 'Main idea A',
+        a: 1.0 + Math.random(),
+        b: -1 + Math.random() * 2,
+        c: 0.15 + Math.random() * 0.1,
+        metadata: { dataset: 'Synthetic', stage }
+      });
+    }
+    
+    const allItems = [
+      ...readingItems,
+      ...generateListeningItems(),
+      ...generateWritingItems(),
+      ...generateSpeakingItems()
+    ];
+    
+    console.log(`📦 Generated ${allItems.length} test items`);
+    
+    const result = await dataLoader.loadTestItems(allItems, { 
+      skipDuplicates: true,
+      updateOnConflict: false
+    });
+    
+    console.log(`✅ Inserted ${result.inserted} items`);
+    
+    res.status(200).json({
+      status: 'success',
+      message: 'Database seeded successfully',
+      items_inserted: result.inserted,
+      items_failed: result.failed.length,
+      breakdown: {
+        reading: readingItems.length,
+        listening: 60,
+        writing: 30,
+        speaking: 15
+      }
+    });
+    
+  } catch (error) {
+    console.error('Seeding error:', error);
+    res.status(500).json({
+      status: 'error',
+      message: error instanceof Error ? error.message : 'Seeding failed'
+    });
+  }
+});
+
 // API root endpoint
 app.get('/api', (_req: Request, res: Response) => {
   res.json({ 
