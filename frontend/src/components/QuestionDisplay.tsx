@@ -103,6 +103,11 @@ export function QuestionDisplay({
   // Parse question content
   const parsedContent = parseQuestionContent(question)
 
+  console.log('[QuestionDisplay] Question ID:', question.id)
+  console.log('[QuestionDisplay] Question type:', question.type)
+  console.log('[QuestionDisplay] Parsed content:', parsedContent)
+  console.log('[QuestionDisplay] Options:', question.options)
+
   // Update local state when answer changes in store
   useEffect(() => {
     if (typeof currentAnswer === 'string') {
