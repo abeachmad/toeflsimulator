@@ -60,9 +60,14 @@ export function SectionDisplay() {
 
         const data = await response.json()
         
+        console.log('[SectionDisplay] API Response:', data)
+        
         // Handle different response formats
         // API returns: { message: string, data: { items: [], total: number } }
         const itemsArray = Array.isArray(data) ? data : (data.data?.items || data.items || [])
+        
+        console.log('[SectionDisplay] Items array length:', itemsArray.length)
+        console.log('[SectionDisplay] First item:', itemsArray[0])
         
         // Transform backend items to frontend format
         const transformedItems = itemsArray.map((item: any) => ({
@@ -79,6 +84,9 @@ export function SectionDisplay() {
           irt_c: item.irt_parameters?.c || 0.2,
           metadata: item.metadata,
         }))
+
+        console.log('[SectionDisplay] Transformed items:', transformedItems.length)
+        console.log('[SectionDisplay] First transformed item:', transformedItems[0])
 
         setItems(transformedItems)
       } catch (err) {
@@ -98,6 +106,12 @@ export function SectionDisplay() {
 
   const currentItem = items[currentItemIndex]
   const questionIds = items.map(item => item.id)
+
+  console.log('[SectionDisplay] Render - items.length:', items.length)
+  console.log('[SectionDisplay] Render - currentItemIndex:', currentItemIndex)
+  console.log('[SectionDisplay] Render - currentItem:', currentItem)
+  console.log('[SectionDisplay] Render - loading:', loading)
+  console.log('[SectionDisplay] Render - error:', error)
 
   return (
     <div className="min-h-screen bg-gray-900">
