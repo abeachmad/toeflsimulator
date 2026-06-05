@@ -92,6 +92,52 @@ app.get('/health', (_req: Request, res: Response) => {
   });
 });
 
+// Database status check endpoint
+app.get('/db-status', async (_req: Request, res: Response) => {
+  try {
+    const { pool } = await import('./config/database.js');
+    
+    // Check connection
+    await pool.query('SELECT NOW()');
+    
+    // Check if tables exist and count items
+    const itemsCount = await pool.query('SELECT COUNT(*) FROM test_items');
+    const sessionsCount = await pool.query('SELECT COUNT(*) FROM exam_sessions');
+    const cefrCount = await pool.query('SELECT COUNT(*) FROM cefr_conversion');
+    
+    // Get items by section
+    const sectionCounts = await pool.query(`
+      SELECT section, COUNT(*) as count 
+      FROM test_items 
+      GROUP BY section 
+      ORDER BY section
+    `);
+    
+    res.status(200).json({
+      status: 'connected',
+      timestamp: new Date().toISOString(),
+      tables: {
+        test_items: parseInt(itemsCount.rows[0].count),
+        exam_sessions: parseInt(sessionsCount.rows[0].count),
+        cefr_conversion: parseInt(cefrCount.rows[0].count),
+      },
+      items_by_section: sectionCounts.rows.map((r: any) => ({
+        section: r.section,
+        count: parseInt(r.count),
+      })),
+      initialized: parseInt(cefrCount.rows[0].count) > 0,
+      seeded: parseInt(itemsCount.rows[0].count) >= 150,
+    });
+  } catch (error) {
+    res.status(500).json({
+      status: 'error',
+      message: error instanceof Error ? error.message : 'Database connection failed',
+      initialized: false,
+      seeded: false,
+    });
+  }
+});
+
 // API root endpoint
 app.get('/api', (_req: Request, res: Response) => {
   res.json({ 
