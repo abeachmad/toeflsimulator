@@ -68,8 +68,8 @@ export interface UpdateSessionRequest {
  * **Validates: Requirements 1.1, 1.2, 1.3, 1.4, 13.4, 18.3, 18.4**
  */
 export class SessionManager {
-  // For future state migrations - currently unused but reserved for schema versioning
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  // State version for future migrations
+  // @ts-expect-error - Reserved for future schema versioning
   private readonly _STATE_VERSION = 1;
   
   constructor(private db: Pool) {}
