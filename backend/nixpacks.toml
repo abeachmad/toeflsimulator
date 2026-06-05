@@ -1,6 +1,5 @@
 [phases.setup]
 nixPkgs = ["nodejs_22"]
-cmds = ["npx tsx scripts/ingest-from-all-sources.ts || true"]
 
 [phases.install]
 cmds = ["npm install"]
