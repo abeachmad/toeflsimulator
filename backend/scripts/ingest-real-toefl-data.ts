@@ -80,12 +80,32 @@ async function parseTOEFLSentenceInsertion(): Promise<TOEFLItem[]> {
     console.log(`   Found ${lines.length} lines in dataset`);
     
     for (let i = 0; i < Math.min(lines.length, 60); i++) {
-      const parts = lines[i].split('\t');
-      if (parts.length < 3) continue;
+      const line = lines[i].trim();
+      if (!line) continue;
       
-      const passage = parts[0];
-      const sentence = parts[1];
-      const markers = parts[2];
+      // Try to parse tab-separated values
+      const parts = line.split('\t');
+      
+      // Handle different formats - some lines might have different structures
+      let passage = '';
+      let sentence = '';
+      let correctAnswer = 'A';
+      
+      if (parts.length >= 3) {
+        passage = parts[0];
+        sentence = parts[1];
+        const markers = parts[2];
+        correctAnswer = markers.charAt(0);
+      } else if (parts.length === 2) {
+        passage = parts[0];
+        sentence = parts[1];
+      } else {
+        // Skip malformed lines
+        continue;
+      }
+      
+      // Skip if passage or sentence is too short
+      if (passage.length < 50 || sentence.length < 10) continue;
       
       const difficulty = i < 20 ? 'easy' : i < 40 ? 'medium' : 'hard';
       const irt = generateIRTParams(difficulty);
@@ -96,13 +116,13 @@ async function parseTOEFLSentenceInsertion(): Promise<TOEFLItem[]> {
         type: 'sentence_insertion',
         stage: Math.floor(i / 30) + 1,
         difficulty_level: difficulty,
-        content: `Passage:\n\n${passage}\n\nInsert the following sentence:\n"${sentence}"`,
-        options: ['[A]', '[B]', '[C]', '[D]'],
-        correct_answer: markers.charAt(0),
+        content: `Passage:\n\n${passage.substring(0, 500)}...\n\nWhere should the following sentence be inserted?\n\n"${sentence}"`,
+        options: ['Position [A]', 'Position [B]', 'Position [C]', 'Position [D]'],
+        correct_answer: correctAnswer,
         irt_parameters: irt,
         metadata: {
           source: 'TOEFL Sentence Insertion Dataset',
-          markers: markers,
+          full_passage_length: passage.length,
         },
       });
     }
@@ -110,7 +130,7 @@ async function parseTOEFLSentenceInsertion(): Promise<TOEFLItem[]> {
     console.log(`✓ Parsed ${items.length} sentence insertion items`);
     return items;
   } catch (error) {
-    console.error('✗ Failed to fetch TOEFL Sentence Insertion data:', error);
+    console.error('✗ Failed to fetch TOEFL Sentence Insertion data:', error instanceof Error ? error.message : error);
     return [];
   }
 }
@@ -162,15 +182,15 @@ async function parseTOEFLQA(): Promise<TOEFLItem[]> {
     
     // Fallback: Generate synthetic reading items
     const items: TOEFLItem[] = [];
-    for (let i = 0; i < 30; i++) {
-      const difficulty = i < 10 ? 'easy' : i < 20 ? 'medium' : 'hard';
+    for (let i = 0; i < 40; i++) {
+      const difficulty = i < 13 ? 'easy' : i < 27 ? 'medium' : 'hard';
       const irt = generateIRTParams(difficulty);
       
       items.push({
         item_id: `reading-comprehension-${i + 1}`,
         section: 'reading',
         type: 'multiple_choice',
-        stage: Math.floor(i / 15) + 1,
+        stage: Math.floor(i / 20) + 1,
         difficulty_level: difficulty,
         content: `Sample reading passage ${i + 1}. This is a placeholder passage that would contain academic content about science, history, or literature topics commonly found on the TOEFL exam.`,
         options: [
@@ -298,6 +318,50 @@ async function generateListeningItems(): Promise<TOEFLItem[]> {
 }
 
 /**
+ * Generate synthetic speaking items
+ */
+async function generateSpeakingItems(): Promise<TOEFLItem[]> {
+  console.log('📥 Generating speaking items...');
+  
+  const items: TOEFLItem[] = [];
+  
+  const prompts = [
+    'Describe a memorable event from your childhood.',
+    'What is your favorite place to visit and why?',
+    'Discuss the advantages and disadvantages of social media.',
+    'Explain a time when you had to make a difficult decision.',
+    'Describe your ideal job and explain why it appeals to you.',
+  ];
+  
+  for (let i = 0; i < 20; i++) {
+    const difficulty = i < 7 ? 'easy' : i < 14 ? 'medium' : 'hard';
+    const irt = generateIRTParams(difficulty);
+    const prompt = prompts[i % prompts.length];
+    
+    items.push({
+      item_id: `speaking-task-${i + 1}`,
+      section: 'speaking',
+      type: 'independent',
+      stage: Math.floor(i / 10) + 1,
+      difficulty_level: difficulty,
+      content: `Speaking Task ${i + 1}:\n\n${prompt}\n\nYou have 45 seconds to prepare and 60 seconds to respond.`,
+      options: [],
+      correct_answer: '',
+      irt_parameters: irt,
+      metadata: {
+        source: 'Generated Speaking',
+        prep_time: 45,
+        response_time: 60,
+        rubric: 'Responses are evaluated on delivery, language use, and topic development.',
+      },
+    });
+  }
+  
+  console.log(`✓ Generated ${items.length} speaking items`);
+  return items;
+}
+
+/**
  * Insert items into database
  */
 async function insertItems(items: TOEFLItem[]): Promise<void> {
@@ -364,10 +428,14 @@ async function main() {
     const listeningItems = await generateListeningItems();
     allItems.push(...listeningItems);
     
+    const speakingItems = await generateSpeakingItems();
+    allItems.push(...speakingItems);
+    
     console.log(`\n📊 Total items collected: ${allItems.length}`);
     console.log(`- Reading: ${allItems.filter(i => i.section === 'reading').length}`);
     console.log(`- Writing: ${allItems.filter(i => i.section === 'writing').length}`);
     console.log(`- Listening: ${allItems.filter(i => i.section === 'listening').length}`);
+    console.log(`- Speaking: ${allItems.filter(i => i.section === 'speaking').length}`);
     
     // Insert into database
     await insertItems(allItems);
