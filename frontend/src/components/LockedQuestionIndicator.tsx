@@ -63,7 +63,7 @@ export function LockedQuestionIndicator({
     <div className={`relative ${className}`}>
       {/* Visual Lock Indicator (Requirement 11.5) */}
       {isLocked && (
-        <div className="absolute top-0 right-0 z-10 flex items-center gap-2 bg-amber-600 text-white px-3 py-1 rounded-bl-lg rounded-tr-lg shadow-lg">
+        <div className="absolute top-0 right-0 z-20 flex items-center gap-2 bg-amber-600 text-white px-3 py-1 rounded-bl-lg rounded-tr-lg shadow-lg">
           <svg
             xmlns="http://www.w3.org/2000/svg"
             className="h-4 w-4"
@@ -86,7 +86,7 @@ export function LockedQuestionIndicator({
       {isLocked && (
         <div
           onClick={handleLockedClick}
-          className="absolute inset-0 bg-gray-900 bg-opacity-70 backdrop-blur-sm z-20 cursor-not-allowed rounded-lg"
+          className="absolute inset-0 bg-gray-900 bg-opacity-50 z-10 cursor-not-allowed rounded-lg"
           aria-label="Question locked until passage is read"
           role="button"
           tabIndex={0}
