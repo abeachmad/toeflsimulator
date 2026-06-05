@@ -114,14 +114,14 @@ export function SectionDisplay() {
   console.log('[SectionDisplay] Render - error:', error)
 
   return (
-    <div className="min-h-screen bg-gray-900">
+    <div className="min-h-screen bg-white">
       {/* Header */}
-      <header className="bg-gray-800 border-b border-gray-700 p-4">
+      <header className="bg-gray-50 border-b border-gray-300 p-4">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <h1 className="text-white font-semibold text-lg capitalize">
+          <h1 className="text-gray-900 font-semibold text-lg capitalize">
             {id || 'Section'} Section
           </h1>
-          <div className="text-gray-300 text-sm">
+          <div className="text-gray-700 text-sm">
             Question {currentItemIndex + 1} of {items.length}
           </div>
         </div>
@@ -130,21 +130,21 @@ export function SectionDisplay() {
       {/* Main content area */}
       <main className="max-w-7xl mx-auto p-8">
         {loading && (
-          <div className="bg-gray-800 rounded-lg p-8 text-center border border-gray-700">
+          <div className="bg-white rounded-lg p-8 text-center border border-gray-300">
             <div className="flex items-center justify-center space-x-3">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
-              <p className="text-gray-300">Loading questions...</p>
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+              <p className="text-gray-700">Loading questions...</p>
             </div>
           </div>
         )}
 
         {error && (
-          <div className="bg-red-900 border border-red-600 rounded-lg p-6 text-center">
-            <p className="text-red-200 font-semibold mb-2">Error Loading Questions</p>
-            <p className="text-red-300 text-sm">{error}</p>
+          <div className="bg-red-50 border border-red-300 rounded-lg p-6 text-center">
+            <p className="text-red-800 font-semibold mb-2">Error Loading Questions</p>
+            <p className="text-red-700 text-sm">{error}</p>
             <button
               onClick={() => window.location.reload()}
-              className="mt-4 px-4 py-2 bg-red-700 hover:bg-red-600 text-white rounded transition"
+              className="mt-4 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded transition"
             >
               Retry
             </button>
@@ -152,9 +152,9 @@ export function SectionDisplay() {
         )}
 
         {!loading && !error && items.length === 0 && (
-          <div className="bg-yellow-900 border border-yellow-600 rounded-lg p-6 text-center">
-            <p className="text-yellow-200 font-semibold mb-2">⚠️ No Questions Available</p>
-            <p className="text-yellow-300 text-sm">
+          <div className="bg-yellow-50 border border-yellow-300 rounded-lg p-6 text-center">
+            <p className="text-yellow-800 font-semibold mb-2">⚠️ No Questions Available</p>
+            <p className="text-yellow-700 text-sm">
               This section doesn't have any questions yet. Please contact support.
             </p>
           </div>

@@ -145,22 +145,22 @@ export function PassageViewer({
   return (
     <div className={`flex flex-col lg:flex-row h-full min-h-screen ${className}`}>
       {/* Left side: Questions */}
-      <div className="w-full lg:w-1/2 bg-gray-900 p-6 overflow-y-auto">
+      <div className="w-full lg:w-1/2 bg-gray-50 p-6 overflow-y-auto">
         <div className="max-w-2xl mx-auto">{children}</div>
       </div>
 
       {/* Right side: Reading Passage */}
-      <div className="w-full lg:w-1/2 bg-gray-800 border-l border-gray-700">
+      <div className="w-full lg:w-1/2 bg-white border-l border-gray-300">
         <div
           ref={passageRef}
           onScroll={handleScroll}
           className="h-full overflow-y-auto p-8"
         >
           <div className="max-w-2xl mx-auto">
-            <div className="prose prose-invert prose-lg max-w-none">
+            <div className="prose prose-gray prose-lg max-w-none">
               {/* Render passage with proper formatting */}
               {passage.split('\n\n').map((paragraph, index) => (
-                <p key={index} className="text-gray-100 mb-4 leading-relaxed">
+                <p key={index} className="text-gray-900 mb-4 leading-relaxed">
                   {paragraph}
                 </p>
               ))}

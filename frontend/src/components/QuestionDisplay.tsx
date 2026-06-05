@@ -136,6 +136,7 @@ export function QuestionDisplay({
    * Render question based on type
    */
   const renderQuestionContent = () => {
+    // All question types use the same rendering: passage + question + multiple choice options
     switch (question.type) {
       case 'complete-words':
         return renderCompleteWordsQuestion(parsedContent as CompleteWordsContent)
@@ -151,7 +152,17 @@ export function QuestionDisplay({
       
       case 'multiple_choice':
       case 'multiple-choice':
-        // Generic multiple choice - treat as academic passage
+      case 'main-idea':
+      case 'detail':
+      case 'inference':
+      case 'vocabulary':
+      case 'reference':
+      case 'sentence-insertion':
+      case 'purpose':
+      case 'factual':
+      case 'negative-fact':
+      case 'summary':
+        // All these types use the same format: passage (on right) + question + options
         return renderAcademicPassageQuestion(parsedContent as AcademicPassageContent)
       
       default:
