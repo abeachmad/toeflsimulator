@@ -37,7 +37,10 @@ const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS ?? process.env.FRONTEND_URL
 console.log('🔒 CORS enabled for:', ALLOWED_ORIGINS.join(', '));
 
 // Security middleware - helmet for security headers
-app.use(helmet());
+// Disable crossOriginResourcePolicy for audio streaming
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: "cross-origin" }
+}));
 
 // CORS configuration — whitelist for authorized domains (Requirement 22.3)
 app.use(cors({
