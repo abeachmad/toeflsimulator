@@ -14,7 +14,9 @@
     "lint": "eslint src --ext .ts",
     "db:test": "tsx scripts/test-db-connection.ts",
     "db:init": "psql -U postgres -d toefl_simulator -f scripts/init-db.sql",
-    "db:seed": "tsx scripts/seed-database.ts"
+    "db:seed": "tsx scripts/seed-database.ts",
+    "ingest-audio": "tsx scripts/ingest-audio-listening-sources.ts",
+    "check-audio": "tsx scripts/check-audio-setup.ts"
   },
   "keywords": [
     "toefl",
