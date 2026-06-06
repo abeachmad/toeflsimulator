@@ -247,8 +247,13 @@ router.get('/section/:section', async (req: Request, res: Response, next: NextFu
     const limit = Math.min(parseInt((req.query.limit as string) || '50', 10), 100);
     const offset = parseInt((req.query.offset as string) || '0', 10);
     
+    // For listening section, only return items with real audio files (audio_filename present)
+    const audioFilter = section === 'listening' 
+      ? "AND metadata->>'audio_filename' IS NOT NULL" 
+      : '';
+    
     // Get total count for section
-    const countQuery = 'SELECT COUNT(*) as total FROM test_items WHERE section = $1';
+    const countQuery = `SELECT COUNT(*) as total FROM test_items WHERE section = $1 ${audioFilter}`;
     const countResult = await pool.query(countQuery, [section]);
     const total = parseInt(countResult.rows[0].total, 10);
     
@@ -268,14 +273,14 @@ router.get('/section/:section', async (req: Request, res: Response, next: NextFu
         created_at,
         updated_at
       FROM test_items
-      WHERE section = $1
+      WHERE section = $1 ${audioFilter}
       ORDER BY stage, difficulty_level, created_at
       LIMIT $2 OFFSET $3
     `;
     
     const itemsResult = await pool.query(itemsQuery, [section, limit, offset]);
     
-    console.log(`[Items API] Retrieved ${itemsResult.rows.length} items for section ${section}`);
+    console.log(`[Items API] Retrieved ${itemsResult.rows.length} items for section ${section} (with audio filter: ${section === 'listening'})`);
     
     res.status(200).json({
       message: `Items for section ${section} retrieved successfully`,
