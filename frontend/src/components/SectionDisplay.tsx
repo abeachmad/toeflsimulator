@@ -123,10 +123,14 @@ export function SectionDisplay() {
       submissionSuccessful = true
       
       // Store score if returned (for reading/listening sections)
-      if (result.score) {
+      // Backend returns score in result.data.score
+      const score = result.data?.score || result.score
+      if (score) {
         const { setSectionScore } = useExamStore.getState()
-        setSectionScore(id as 'reading' | 'listening' | 'writing' | 'speaking', result.score)
-        console.log('[handleSectionComplete] Score stored:', result.score)
+        setSectionScore(id as 'reading' | 'listening' | 'writing' | 'speaking', score)
+        console.log('[handleSectionComplete] Score stored:', score)
+      } else {
+        console.log('[handleSectionComplete] No score in response')
       }
     } catch (error) {
       // Error handling with console logging (Requirement 8.1, 8.2)
