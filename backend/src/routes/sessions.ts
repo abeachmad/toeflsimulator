@@ -357,6 +357,15 @@ router.post('/:sessionId/sections/:section/submit', validateRequest(sectionSubmi
     const { sessionId, section } = req.params;
     const { answers } = req.body;
     
+    // Validate required parameters
+    if (!sessionId || !section) {
+      res.status(400).json({
+        error: 'Bad Request',
+        message: 'sessionId and section are required',
+      });
+      return;
+    }
+    
     console.log('[Section Submit] Received submission:', {
       sessionId,
       section,
