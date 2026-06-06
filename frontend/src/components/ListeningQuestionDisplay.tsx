@@ -127,21 +127,31 @@ export function ListeningQuestionDisplay({
    * Shows brief audio prompt with response selection
    */
   const renderChooseResponseQuestion = (content: ChooseResponseContent) => {
+    const hasAudio = content.audioUrl && content.audioUrl !== ''
+    
     return (
       <div className="space-y-4">
         <div className="text-gray-400 text-sm mb-4 p-3 bg-gray-800 rounded border-l-4 border-purple-500">
           <p className="font-medium">Listen to the audio and choose the best response</p>
+          {!hasAudio && (
+            <p className="text-yellow-400 text-xs mt-1">⚠️ Audio unavailable - transcript provided below</p>
+          )}
         </div>
 
         {/* Audio Player */}
-        {content.audioUrl && (
+        {hasAudio && (
           <AudioPlayer audioUrl={`${API_URL}${content.audioUrl}`} className="mb-6" />
         )}
 
-        {/* Transcript (for debugging/accessibility - can be hidden in production) */}
-        {content.transcript && !content.audioUrl && (
-          <div className="bg-gray-800 border border-gray-700 rounded-lg p-4 mb-6">
-            <p className="text-xs uppercase tracking-wide text-gray-500 mb-2">Transcript (No audio available):</p>
+        {/* Transcript - show when no audio OR as accessibility option */}
+        {content.transcript && (
+          <div className={`bg-gray-800 border rounded-lg p-4 mb-6 ${hasAudio ? 'border-gray-700' : 'border-yellow-600'}`}>
+            {hasAudio && (
+              <p className="text-xs uppercase tracking-wide text-gray-500 mb-2">Transcript (for accessibility):</p>
+            )}
+            {!hasAudio && (
+              <p className="text-xs uppercase tracking-wide text-yellow-400 mb-2">📝 Transcript (Audio Unavailable):</p>
+            )}
             <p className="text-gray-300 text-sm leading-relaxed whitespace-pre-wrap">{content.transcript}</p>
           </div>
         )}
@@ -160,21 +170,31 @@ export function ListeningQuestionDisplay({
    * Shows student-professor or student-student dialogue question
    */
   const renderConversationQuestion = (content: ConversationContent) => {
+    const hasAudio = content.audioUrl && content.audioUrl !== ''
+    
     return (
       <div className="space-y-4">
         <div className="text-gray-400 text-sm mb-4 p-3 bg-gray-800 rounded border-l-4 border-blue-500">
           <p className="font-medium">Listen to the conversation</p>
+          {!hasAudio && (
+            <p className="text-yellow-400 text-xs mt-1">⚠️ Audio unavailable - transcript provided below</p>
+          )}
         </div>
 
         {/* Audio Player */}
-        {content.audioUrl && (
+        {hasAudio && (
           <AudioPlayer audioUrl={`${API_URL}${content.audioUrl}`} className="mb-6" />
         )}
 
-        {/* Transcript (for debugging/accessibility - can be hidden in production) */}
-        {content.transcript && !content.audioUrl && (
-          <div className="bg-gray-800 border border-gray-700 rounded-lg p-4 mb-6">
-            <p className="text-xs uppercase tracking-wide text-gray-500 mb-2">Transcript (No audio available):</p>
+        {/* Transcript - show when no audio OR as accessibility option */}
+        {content.transcript && (
+          <div className={`bg-gray-800 border rounded-lg p-4 mb-6 ${hasAudio ? 'border-gray-700' : 'border-yellow-600'}`}>
+            {hasAudio && (
+              <p className="text-xs uppercase tracking-wide text-gray-500 mb-2">Transcript (for accessibility):</p>
+            )}
+            {!hasAudio && (
+              <p className="text-xs uppercase tracking-wide text-yellow-400 mb-2">📝 Transcript (Audio Unavailable):</p>
+            )}
             <p className="text-gray-300 text-sm leading-relaxed whitespace-pre-wrap">{content.transcript}</p>
           </div>
         )}
@@ -193,21 +213,31 @@ export function ListeningQuestionDisplay({
    * Shows professor lecture question
    */
   const renderAcademicLectureQuestion = (content: AcademicLectureContent) => {
+    const hasAudio = content.audioUrl && content.audioUrl !== ''
+    
     return (
       <div className="space-y-4">
         <div className="text-gray-400 text-sm mb-4 p-3 bg-gray-800 rounded border-l-4 border-green-500">
           <p className="font-medium">Listen to the academic lecture</p>
+          {!hasAudio && (
+            <p className="text-yellow-400 text-xs mt-1">⚠️ Audio unavailable - transcript provided below</p>
+          )}
         </div>
 
         {/* Audio Player */}
-        {content.audioUrl && (
+        {hasAudio && (
           <AudioPlayer audioUrl={`${API_URL}${content.audioUrl}`} className="mb-6" />
         )}
 
-        {/* Transcript (for debugging/accessibility - can be hidden in production) */}
-        {content.transcript && !content.audioUrl && (
-          <div className="bg-gray-800 border border-gray-700 rounded-lg p-4 mb-6">
-            <p className="text-xs uppercase tracking-wide text-gray-500 mb-2">Transcript (No audio available):</p>
+        {/* Transcript - show when no audio OR as accessibility option */}
+        {content.transcript && (
+          <div className={`bg-gray-800 border rounded-lg p-4 mb-6 ${hasAudio ? 'border-gray-700' : 'border-yellow-600'}`}>
+            {hasAudio && (
+              <p className="text-xs uppercase tracking-wide text-gray-500 mb-2">Transcript (for accessibility):</p>
+            )}
+            {!hasAudio && (
+              <p className="text-xs uppercase tracking-wide text-yellow-400 mb-2">📝 Transcript (Audio Unavailable):</p>
+            )}
             <p className="text-gray-300 text-sm leading-relaxed whitespace-pre-wrap">{content.transcript}</p>
           </div>
         )}

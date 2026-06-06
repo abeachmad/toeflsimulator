@@ -29,19 +29,26 @@ const geminiGrader = GEMINI_API_KEY
   : null;
 
 // Configure multer for audio file uploads
-// Requirements 15.1, 15.2: Validate file size (<10MB) and format (WAV only)
+// Requirements 15.1, 15.2: Validate file size (<10MB) and accept WAV/WEBM formats
 const upload = multer({
   dest: 'uploads/audio/',
   limits: {
     fileSize: 10 * 1024 * 1024, // 10MB limit (Requirement 15.1)
   },
   fileFilter: (_req, file, cb) => {
-    // Requirement 15.2: Accept only WAV format
-    // Check both MIME type and file extension
-    const isWavMimeType = file.mimetype === 'audio/wav' || file.mimetype === 'audio/x-wav';
-    const hasWavExtension = file.originalname.toLowerCase().endsWith('.wav');
+    // Accept WAV or WEBM format (browser MediaRecorder typically outputs webm)
+    const isValidMimeType = 
+      file.mimetype === 'audio/wav' || 
+      file.mimetype === 'audio/x-wav' ||
+      file.mimetype === 'audio/webm' ||
+      file.mimetype === 'audio/ogg';
     
-    if (isWavMimeType && hasWavExtension) {
+    const hasValidExtension = 
+      file.originalname.toLowerCase().endsWith('.wav') ||
+      file.originalname.toLowerCase().endsWith('.webm') ||
+      file.originalname.toLowerCase().endsWith('.ogg');
+    
+    if (isValidMimeType && hasValidExtension) {
       cb(null, true);
     } else {
       // Requirement 15.4: Return specific error for format violations
@@ -178,7 +185,7 @@ router.post('/writing', validateRequest(writingGradeSchema), async (req: Request
  * Assess pronunciation from an audio recording using Gemini Flash Pronunciation API
  * 
  * Request: multipart/form-data
- *   - audio: File (WAV format only, max 10MB)
+ *   - audio: File (WAV, WEBM, or OGG format, max 10MB)
  *   - referenceText: string (expected text that should be spoken)
  *   - taskType: 'listen-repeat' | 'simulated-interview' (optional)
  * 
@@ -206,7 +213,7 @@ router.post('/speaking', (req: Request, res: Response, next: NextFunction) => {
       
       // Requirement 15.4: Format violation error
       if (err.message === 'INVALID_FORMAT') {
-        errors.push('Audio file format must be WAV');
+        errors.push('Audio file format must be WAV, WEBM, or OGG');
       }
       
       // Requirement 15.5: Return all validation errors
@@ -259,12 +266,20 @@ router.post('/speaking', (req: Request, res: Response, next: NextFunction) => {
       errors.push('Audio file size exceeds 10 megabytes limit');
     }
     
-    // Requirement 15.2, 15.4: Validate WAV format (MIME type and extension)
-    const isWavMimeType = req.file.mimetype === 'audio/wav' || req.file.mimetype === 'audio/x-wav';
-    const hasWavExtension = req.file.originalname.toLowerCase().endsWith('.wav');
+    // Requirement 15.2, 15.4: Validate audio format (MIME type and extension)
+    const isValidMimeType = 
+      req.file.mimetype === 'audio/wav' || 
+      req.file.mimetype === 'audio/x-wav' ||
+      req.file.mimetype === 'audio/webm' ||
+      req.file.mimetype === 'audio/ogg';
     
-    if (!isWavMimeType || !hasWavExtension) {
-      errors.push('Audio file format must be WAV');
+    const hasValidExtension = 
+      req.file.originalname.toLowerCase().endsWith('.wav') ||
+      req.file.originalname.toLowerCase().endsWith('.webm') ||
+      req.file.originalname.toLowerCase().endsWith('.ogg');
+    
+    if (!isValidMimeType || !hasValidExtension) {
+      errors.push('Audio file format must be WAV, WEBM, or OGG');
     }
     
     // Requirement 15.5: Return all validation errors with 400 status

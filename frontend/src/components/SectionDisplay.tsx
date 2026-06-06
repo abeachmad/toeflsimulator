@@ -373,32 +373,19 @@ export function SectionDisplay() {
                   />
                 )}
                 {id === 'speaking' && (
-                  <>
-                    {/* Task Prompt */}
-                    <div className="bg-white rounded-lg p-6 mb-6 border border-gray-300">
-                      <h3 className="text-xl font-semibold text-gray-900 mb-4">
-                        Speaking Task {currentItemIndex + 1}
-                      </h3>
-                      <p className="text-gray-700 whitespace-pre-wrap">
-                        {currentItem.content}
-                      </p>
-                    </div>
-
-                    {/* Audio Recorder */}
-                    <AudioRecorder
-                      question={currentItem as SpeakingQuestion}
-                      onSubmit={(_score) => {
-                        // Store score automatically in AudioRecorder via setSectionScore
-                        // Navigate to next task or complete section
-                        if (!isLastQuestion) {
-                          setCurrentItemIndex(currentItemIndex + 1)
-                        } else {
-                          handleSectionComplete()
-                        }
-                      }}
-                      maxDurationSeconds={currentItem.metadata?.responseTime || 60}
-                    />
-                  </>
+                  <AudioRecorder
+                    question={currentItem as SpeakingQuestion}
+                    onSubmit={(_score) => {
+                      // Store score automatically in AudioRecorder via setSectionScore
+                      // Navigate to next task or complete section
+                      if (!isLastQuestion) {
+                        setCurrentItemIndex(currentItemIndex + 1)
+                      } else {
+                        handleSectionComplete()
+                      }
+                    }}
+                    maxDurationSeconds={currentItem.metadata?.responseTime || 60}
+                  />
                 )}
                 
                 {/* Navigation buttons */}

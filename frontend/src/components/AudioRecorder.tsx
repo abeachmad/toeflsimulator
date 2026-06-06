@@ -387,7 +387,7 @@ export function AudioRecorder({
               <button
                 type="button"
                 onClick={uploadAndGrade}
-                className="bg-ets-blue hover:bg-ets-blue-dark text-white font-semibold px-6 py-3 rounded transition-colors focus:outline-none focus:ring-2 focus:ring-ets-blue focus:ring-offset-2 focus:ring-offset-gray-900"
+                className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-8 py-3 rounded-lg shadow-lg transition-all transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-gray-900"
                 aria-label="Submit speaking response"
               >
                 Submit Response
