@@ -50,6 +50,9 @@ app.use(cors({
     }
   },
   credentials: true,
+  // Enable audio streaming with range requests
+  exposedHeaders: ['Content-Range', 'Accept-Ranges', 'Content-Length'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
 }));
 
 // Response compression (Task 25.4)
