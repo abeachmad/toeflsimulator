@@ -34,6 +34,8 @@ function ScoreCard({
   score: SectionScore | undefined
 }) {
   const hasScore = score !== undefined
+  const isPreliminary = hasScore && score.needsReview === true
+  
   return (
     <div
       className="bg-ets-charcoal border border-gray-600 rounded-lg p-6"
@@ -55,6 +57,16 @@ function ScoreCard({
           {hasScore ? cefrLabel(score.cefrBand) : '--'}
         </span>
       </div>
+      {isPreliminary && (
+        <div className="mt-3 bg-yellow-900 bg-opacity-30 border border-yellow-600 rounded px-3 py-2">
+          <p className="text-yellow-400 text-xs font-semibold">
+            ⚠ Preliminary Score
+          </p>
+          <p className="text-yellow-300 text-xs mt-1">
+            This score is provisional and requires manual review.
+          </p>
+        </div>
+      )}
       {hasScore && score.feedback && (
         <p className="mt-3 text-gray-300 text-xs leading-relaxed border-t border-gray-600 pt-3">
           {score.feedback}

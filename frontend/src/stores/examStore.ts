@@ -17,6 +17,7 @@ export type SectionScore = {
   scaleScore: number
   feedback?: string
   details?: Record<string, unknown>
+  needsReview?: boolean // Flag indicating preliminary score (Requirement 14.3)
 }
 
 type ExamStoreState = {

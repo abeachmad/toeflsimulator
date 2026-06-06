@@ -7,6 +7,8 @@ import { ListeningQuestionDisplay, type ListeningQuestion } from './ListeningQue
 import { PassageViewer } from './PassageViewer'
 import { QuestionNavigationMap } from './QuestionNavigationMap'
 import { SectionTimer } from './SectionTimer'
+import { WritingSection, type WritingQuestion } from './WritingSection'
+import { AudioRecorder, type SpeakingQuestion } from './AudioRecorder'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000'
 
@@ -57,7 +59,7 @@ export function SectionDisplay() {
     }
   }
 
-  // Get next section in sequence (Requirement 3.3)
+  // Get next section in sequence (Requirement 4.1, 4.2, 4.3, 4.4)
   const getNextSection = (current: string): string | null => {
     const order = ['reading', 'listening', 'writing', 'speaking']
     const currentIndex = order.indexOf(current)
@@ -65,6 +67,89 @@ export function SectionDisplay() {
       return null
     }
     return order[currentIndex + 1] as string
+  }
+
+  /**
+   * Handle section completion - submit answers and navigate
+   * Requirements: 3.1, 3.2, 3.3, 3.4, 3.5, 4.1, 4.2, 4.3, 4.4, 8.1, 8.2
+   */
+  const handleSectionComplete = async () => {
+    if (!id || !sessionId) {
+      console.error('[handleSectionComplete] Missing section ID or session ID')
+      return
+    }
+
+    // 1. Collect all answers from current section into submission payload (Requirement 3.2)
+    const { answers } = useExamStore.getState()
+    const sectionAnswers = Array.from(answers.entries())
+      .filter(([itemId]) => items.some(item => item.id === itemId))
+      .map(([itemId, answer]) => ({
+        itemId,
+        answer: typeof answer === 'string' ? answer : JSON.stringify(answer)
+      }))
+
+    console.log('[handleSectionComplete] Submitting section:', id)
+    console.log('[handleSectionComplete] Session ID:', sessionId)
+    console.log('[handleSectionComplete] Answer count:', sectionAnswers.length)
+    console.log('[handleSectionComplete] Answers payload:', sectionAnswers)
+
+    // 2. Make POST request to backend submission endpoint (Requirement 3.2, 8.1)
+    let submissionSuccessful = false
+    try {
+      const response = await fetch(
+        `${API_URL}/api/sessions/${sessionId}/sections/${id}/submit`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ answers: sectionAnswers })
+        }
+      )
+
+      if (!response.ok) {
+        // Error handling for failed submissions with console logging (Requirement 8.1, 8.2)
+        const errorText = await response.text()
+        console.error('[handleSectionComplete] Submission failed:', {
+          status: response.status,
+          statusText: response.statusText,
+          error: errorText
+        })
+        throw new Error(`Submission failed: ${response.status} ${response.statusText}`)
+      }
+
+      const result = await response.json()
+      console.log('[handleSectionComplete] Submission successful:', result)
+      submissionSuccessful = true
+      
+      // Store score if returned (for reading/listening sections)
+      if (result.score) {
+        const { setSectionScore } = useExamStore.getState()
+        setSectionScore(id as 'reading' | 'listening' | 'writing' | 'speaking', result.score)
+        console.log('[handleSectionComplete] Score stored:', result.score)
+      }
+    } catch (error) {
+      // Error handling with console logging (Requirement 8.1, 8.2)
+      console.error('[handleSectionComplete] Error during submission:', error)
+      // Continue to navigation even if submission fails (user should not be blocked)
+    }
+
+    // 3. Navigate to next section (Requirements 3.3, 3.4, 4.1, 4.2, 4.3, 4.4)
+    const nextSection = getNextSection(id)
+    const targetPath = nextSection ? `/exam/section/${nextSection}` : '/exam/results'
+    
+    try {
+      console.log('[handleSectionComplete] Attempting navigation to:', targetPath)
+      navigate(targetPath)
+      console.log('[handleSectionComplete] Navigation successful')
+    } catch (navError) {
+      // Requirement 3.4: If navigation fails after successful submission, leave user on current section
+      console.error('[handleSectionComplete] Navigation failed:', navError)
+      if (submissionSuccessful) {
+        console.log('[handleSectionComplete] Keeping user on current section after submission success')
+        // User stays on current section - no additional action needed
+      }
+    }
   }
 
   useEffect(() => {
@@ -158,13 +243,8 @@ export function SectionDisplay() {
 
   const handleNext = () => {
     if (isLastQuestion) {
-      // Navigate to next section
-      const nextSection = id === 'reading' ? 'listening' : id === 'listening' ? 'writing' : id === 'writing' ? 'speaking' : null
-      if (nextSection) {
-        navigate(`/exam/section/${nextSection}`)
-      } else {
-        navigate('/exam/results')
-      }
+      // Submit section and navigate to next section
+      handleSectionComplete()
     } else {
       setCurrentItemIndex(currentItemIndex + 1)
     }
@@ -278,15 +358,47 @@ export function SectionDisplay() {
                 {id === 'listening' && (
                   <ListeningQuestionDisplay question={currentItem as ListeningQuestion} />
                 )}
-                {(id === 'writing' || id === 'speaking') && (
-                  <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
-                    <div className="text-gray-300 space-y-4">
-                      <h3 className="text-xl font-semibold text-white capitalize">{id} Task</h3>
-                      <div className="prose prose-invert max-w-none">
-                        <p className="text-gray-300 whitespace-pre-wrap">{currentItem.content}</p>
-                      </div>
+                {id === 'writing' && (
+                  <WritingSection
+                    question={currentItem as WritingQuestion}
+                    onSubmit={(_score) => {
+                      // Store score automatically in WritingSection via setSectionScore
+                      // Navigate to next task or complete section
+                      if (!isLastQuestion) {
+                        setCurrentItemIndex(currentItemIndex + 1)
+                      } else {
+                        handleSectionComplete()
+                      }
+                    }}
+                  />
+                )}
+                {id === 'speaking' && (
+                  <>
+                    {/* Task Prompt */}
+                    <div className="bg-white rounded-lg p-6 mb-6 border border-gray-300">
+                      <h3 className="text-xl font-semibold text-gray-900 mb-4">
+                        Speaking Task {currentItemIndex + 1}
+                      </h3>
+                      <p className="text-gray-700 whitespace-pre-wrap">
+                        {currentItem.content}
+                      </p>
                     </div>
-                  </div>
+
+                    {/* Audio Recorder */}
+                    <AudioRecorder
+                      question={currentItem as SpeakingQuestion}
+                      onSubmit={(_score) => {
+                        // Store score automatically in AudioRecorder via setSectionScore
+                        // Navigate to next task or complete section
+                        if (!isLastQuestion) {
+                          setCurrentItemIndex(currentItemIndex + 1)
+                        } else {
+                          handleSectionComplete()
+                        }
+                      }}
+                      maxDurationSeconds={currentItem.metadata?.responseTime || 60}
+                    />
+                  </>
                 )}
                 
                 {/* Navigation buttons */}

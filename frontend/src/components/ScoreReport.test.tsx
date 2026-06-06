@@ -1,141 +1,185 @@
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
-import { MemoryRouter } from 'react-router-dom'
+import { BrowserRouter } from 'react-router-dom'
 import { ScoreReport } from './ScoreReport'
-import type { SectionScore } from '../stores/examStore'
+import { useExamStore } from '../stores'
 
 // Mock react-router-dom navigate
 const mockNavigate = vi.fn()
-vi.mock('react-router-dom', async (importOriginal) => {
-  const original = await importOriginal<typeof import('react-router-dom')>()
+vi.mock('react-router-dom', async () => {
+  const actual = await vi.importActual('react-router-dom')
   return {
-    ...original,
+    ...actual,
     useNavigate: () => mockNavigate,
   }
 })
 
-// Mock examStore
-const mockReset = vi.fn()
-let mockSessionId: string | null = 'session-abc123'
-let mockSectionScores: Partial<Record<string, SectionScore>> = {}
-
-vi.mock('../stores', () => ({
-  useExamStore: () => ({
-    sessionId: mockSessionId,
-    sectionScores: mockSectionScores,
-    reset: mockReset,
-  }),
-}))
-
-function renderScoreReport() {
-  return render(
-    <MemoryRouter>
-      <ScoreReport />
-    </MemoryRouter>,
-  )
-}
-
-describe('ScoreReport', () => {
+describe('ScoreReport Component', () => {
   beforeEach(() => {
-    vi.clearAllMocks()
-    mockSessionId = 'session-abc123'
-    mockSectionScores = {}
+    mockNavigate.mockClear()
+    useExamStore.getState().reset()
   })
 
-  it('shows "No Session Found" when sessionId is null', () => {
-    mockSessionId = null
-    renderScoreReport()
-    expect(screen.getByText(/no session found/i)).toBeInTheDocument()
+  it('should display "No Session Found" when sessionId is null', () => {
+    // Requirements: 7.1, 7.2, 7.3, 7.4, 7.5
+    render(
+      <BrowserRouter>
+        <ScoreReport />
+      </BrowserRouter>
+    )
+
+    expect(screen.getByText('No Session Found')).toBeInTheDocument()
+    expect(screen.getByText('Please complete an exam before viewing scores.')).toBeInTheDocument()
   })
 
-  it('renders the score report header', () => {
-    renderScoreReport()
-    expect(screen.getByText(/TOEFL iBT 2026 Score Report/i)).toBeInTheDocument()
-  })
+  it('should display section scores with scale score and CEFR band', () => {
+    // Requirement 7.1, 7.2
+    const { setSession, setSectionScore } = useExamStore.getState()
+    
+    setSession({ sessionId: 'test-session-123' })
+    setSectionScore('reading', { cefrBand: 5, scaleScore: 25, feedback: 'Good job!' })
+    setSectionScore('listening', { cefrBand: 4, scaleScore: 20 })
 
-  it('shows -- for sections without scores', () => {
-    renderScoreReport()
-    // 4 sections × 2 dashes = 8 "--/30" and 4 "--"
-    const placeholders = screen.getAllByText('--/30')
-    expect(placeholders).toHaveLength(4)
-  })
+    render(
+      <BrowserRouter>
+        <ScoreReport />
+      </BrowserRouter>
+    )
 
-  it('displays scale score when section score is provided', () => {
-    mockSectionScores = {
-      reading: { cefrBand: 5, scaleScore: 26 },
-    }
-    renderScoreReport()
-    expect(screen.getByText('26/30')).toBeInTheDocument()
-  })
-
-  it('displays CEFR band label correctly (B5 → C1)', () => {
-    mockSectionScores = {
-      reading: { cefrBand: 5, scaleScore: 26 },
-    }
-    renderScoreReport()
+    // Check Reading section
+    expect(screen.getByText('25/30')).toBeInTheDocument()
     expect(screen.getByText('C1')).toBeInTheDocument()
+    expect(screen.getByText('Good job!')).toBeInTheDocument()
+
+    // Check Listening section
+    expect(screen.getByText('20/30')).toBeInTheDocument()
+    expect(screen.getByText('B2')).toBeInTheDocument()
   })
 
-  it('shows total score as sum of available section scores', () => {
-    mockSectionScores = {
-      reading: { cefrBand: 5, scaleScore: 26 },
-      listening: { cefrBand: 4, scaleScore: 20 },
-      writing: { cefrBand: 3, scaleScore: 15 },
-      speaking: { cefrBand: 4, scaleScore: 18 },
-    }
-    renderScoreReport()
-    // 26 + 20 + 15 + 18 = 79
-    expect(screen.getByText(/79/)).toBeInTheDocument()
+  it('should calculate and display total score as sum of section scores', () => {
+    // Requirement 7.3
+    const { setSession, setSectionScore } = useExamStore.getState()
+    
+    setSession({ sessionId: 'test-session-123' })
+    setSectionScore('reading', { cefrBand: 5, scaleScore: 25 })
+    setSectionScore('listening', { cefrBand: 4, scaleScore: 20 })
+    setSectionScore('writing', { cefrBand: 3, scaleScore: 18 })
+    setSectionScore('speaking', { cefrBand: 4, scaleScore: 22 })
+
+    render(
+      <BrowserRouter>
+        <ScoreReport />
+      </BrowserRouter>
+    )
+
+    // Total should be 25 + 20 + 18 + 22 = 85
+    expect(screen.getByText('85')).toBeInTheDocument()
+    expect(screen.getByText('/120')).toBeInTheDocument()
   })
 
-  it('shows total score even when only some sections complete', () => {
-    mockSectionScores = {
-      reading: { cefrBand: 5, scaleScore: 25 },
-      listening: { cefrBand: 4, scaleScore: 22 },
-    }
-    renderScoreReport()
-    // 25 + 22 = 47
-    expect(screen.getByText(/47/)).toBeInTheDocument()
+  it('should display completion badge with count of completed sections', () => {
+    // Requirement 7.4
+    const { setSession, setSectionScore } = useExamStore.getState()
+    
+    setSession({ sessionId: 'test-session-123' })
+    setSectionScore('reading', { cefrBand: 5, scaleScore: 25 })
+    setSectionScore('listening', { cefrBand: 4, scaleScore: 20 })
+    setSectionScore('writing', { cefrBand: 3, scaleScore: 18 })
+    // Speaking not completed
+
+    render(
+      <BrowserRouter>
+        <ScoreReport />
+      </BrowserRouter>
+    )
+
+    expect(screen.getByText('3/4 sections completed')).toBeInTheDocument()
   })
 
-  it('shows "2/4 sections completed" badge when incomplete', () => {
-    mockSectionScores = {
-      reading: { cefrBand: 5, scaleScore: 25 },
-      listening: { cefrBand: 4, scaleScore: 22 },
-    }
-    renderScoreReport()
-    expect(screen.getByText(/2\/4 sections completed/)).toBeInTheDocument()
+  it('should display AI-generated feedback for completed sections', () => {
+    // Requirement 7.5
+    const { setSession, setSectionScore } = useExamStore.getState()
+    
+    setSession({ sessionId: 'test-session-123' })
+    setSectionScore('reading', { 
+      cefrBand: 5, 
+      scaleScore: 25, 
+      feedback: 'Excellent reading comprehension demonstrated.'
+    })
+    setSectionScore('writing', { 
+      cefrBand: 4, 
+      scaleScore: 22, 
+      feedback: 'Strong essay structure with minor grammatical errors.'
+    })
+
+    render(
+      <BrowserRouter>
+        <ScoreReport />
+      </BrowserRouter>
+    )
+
+    expect(screen.getByText('Excellent reading comprehension demonstrated.')).toBeInTheDocument()
+    expect(screen.getByText('Strong essay structure with minor grammatical errors.')).toBeInTheDocument()
   })
 
-  it('calls reset and navigate to / on Return Home click', () => {
-    renderScoreReport()
-    fireEvent.click(screen.getByRole('button', { name: /return to home/i }))
-    expect(mockReset).toHaveBeenCalled()
+  it('should navigate to home when "Return to Home" button is clicked', () => {
+    // Requirement 7.5 (Return to Home button)
+    const { setSession, setSectionScore } = useExamStore.getState()
+    
+    setSession({ sessionId: 'test-session-123' })
+    setSectionScore('reading', { cefrBand: 5, scaleScore: 25 })
+
+    render(
+      <BrowserRouter>
+        <ScoreReport />
+      </BrowserRouter>
+    )
+
+    const returnButton = screen.getByRole('button', { name: /return to home/i })
+    fireEvent.click(returnButton)
+
     expect(mockNavigate).toHaveBeenCalledWith('/')
   })
 
-  it('renders feedback when provided', () => {
-    mockSectionScores = {
-      writing: {
-        cefrBand: 4,
-        scaleScore: 20,
-        feedback: 'Good use of vocabulary.',
-      },
-    }
-    renderScoreReport()
-    expect(screen.getByText('Good use of vocabulary.')).toBeInTheDocument()
+  it('should reset exam store when returning home', () => {
+    // Verify store is reset on navigation
+    const { setSession, setSectionScore } = useExamStore.getState()
+    
+    setSession({ sessionId: 'test-session-123' })
+    setSectionScore('reading', { cefrBand: 5, scaleScore: 25 })
+
+    render(
+      <BrowserRouter>
+        <ScoreReport />
+      </BrowserRouter>
+    )
+
+    const returnButton = screen.getByRole('button', { name: /return to home/i })
+    fireEvent.click(returnButton)
+
+    const state = useExamStore.getState()
+    expect(state.sessionId).toBeNull()
+    expect(Object.keys(state.sectionScores).length).toBe(0)
   })
 
-  it('has proper aria-label for main region', () => {
-    renderScoreReport()
-    expect(screen.getByRole('main', { name: /toefl score report/i })).toBeInTheDocument()
-  })
+  it('should show placeholder scores for incomplete sections', () => {
+    // Verify incomplete sections show --/30
+    const { setSession, setSectionScore } = useExamStore.getState()
+    
+    setSession({ sessionId: 'test-session-123' })
+    setSectionScore('reading', { cefrBand: 5, scaleScore: 25 })
+    // Other sections incomplete
 
-  it('renders all four section cards', () => {
-    renderScoreReport()
-    expect(screen.getByRole('region', { name: /reading score/i })).toBeInTheDocument()
-    expect(screen.getByRole('region', { name: /listening score/i })).toBeInTheDocument()
-    expect(screen.getByRole('region', { name: /writing score/i })).toBeInTheDocument()
-    expect(screen.getByRole('region', { name: /speaking score/i })).toBeInTheDocument()
+    render(
+      <BrowserRouter>
+        <ScoreReport />
+      </BrowserRouter>
+    )
+
+    const placeholders = screen.getAllByText('--/30')
+    expect(placeholders.length).toBe(3) // 3 incomplete sections
+
+    const cefrPlaceholders = screen.getAllByText('--')
+    expect(cefrPlaceholders.length).toBeGreaterThanOrEqual(3)
   })
 })

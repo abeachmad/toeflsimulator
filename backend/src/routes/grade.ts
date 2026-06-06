@@ -29,18 +29,23 @@ const geminiGrader = GEMINI_API_KEY
   : null;
 
 // Configure multer for audio file uploads
+// Requirements 15.1, 15.2: Validate file size (<10MB) and format (WAV only)
 const upload = multer({
   dest: 'uploads/audio/',
   limits: {
-    fileSize: 10 * 1024 * 1024, // 10MB limit
+    fileSize: 10 * 1024 * 1024, // 10MB limit (Requirement 15.1)
   },
   fileFilter: (_req, file, cb) => {
-    // Accept only audio files
-    const allowedMimeTypes = ['audio/wav', 'audio/mpeg', 'audio/mp4', 'audio/webm'];
-    if (allowedMimeTypes.includes(file.mimetype)) {
+    // Requirement 15.2: Accept only WAV format
+    // Check both MIME type and file extension
+    const isWavMimeType = file.mimetype === 'audio/wav' || file.mimetype === 'audio/x-wav';
+    const hasWavExtension = file.originalname.toLowerCase().endsWith('.wav');
+    
+    if (isWavMimeType && hasWavExtension) {
       cb(null, true);
     } else {
-      cb(new Error(`Invalid file type. Allowed types: ${allowedMimeTypes.join(', ')}`));
+      // Requirement 15.4: Return specific error for format violations
+      cb(new Error('INVALID_FORMAT'));
     }
   },
 });
@@ -173,7 +178,7 @@ router.post('/writing', validateRequest(writingGradeSchema), async (req: Request
  * Assess pronunciation from an audio recording using Gemini Flash Pronunciation API
  * 
  * Request: multipart/form-data
- *   - audio: File (WAV, MP3, MP4, or WebM format, max 10MB)
+ *   - audio: File (WAV format only, max 10MB)
  *   - referenceText: string (expected text that should be spoken)
  *   - taskType: 'listen-repeat' | 'simulated-interview' (optional)
  * 
@@ -186,9 +191,46 @@ router.post('/writing', validateRequest(writingGradeSchema), async (req: Request
  *   scaleScore: number (0-30)
  * }
  * 
- * Validates: Requirements 6.3, 6.4, 6.5, 6.6, 6.7, 17.1, 17.4, 20.3, 20.4, 20.6
+ * Validates: Requirements 6.3, 6.4, 6.5, 6.6, 6.7, 15.1, 15.2, 15.3, 15.4, 15.5, 17.1, 17.4, 20.3, 20.4, 20.6
  */
-router.post('/speaking', upload.single('audio'), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+router.post('/speaking', (req: Request, res: Response, next: NextFunction) => {
+  // Custom multer error handler for Requirements 15.3, 15.4, 15.5
+  upload.single('audio')(req, res, (err: any) => {
+    if (err) {
+      const errors: string[] = [];
+      
+      // Requirement 15.3: File size violation error
+      if (err.code === 'LIMIT_FILE_SIZE') {
+        errors.push('Audio file size exceeds 10 megabytes limit');
+      }
+      
+      // Requirement 15.4: Format violation error
+      if (err.message === 'INVALID_FORMAT') {
+        errors.push('Audio file format must be WAV');
+      }
+      
+      // Requirement 15.5: Return all validation errors
+      if (errors.length > 0) {
+        res.status(400).json({
+          error: 'Validation Error',
+          message: 'Audio file validation failed',
+          details: errors,
+        });
+        return;
+      }
+      
+      // Other multer errors
+      res.status(400).json({
+        error: 'Bad Request',
+        message: err.message || 'File upload error',
+      });
+      return;
+    }
+    
+    // No multer errors, proceed to main handler
+    next();
+  });
+}, async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   let uploadedFilePath: string | undefined;
 
   try {
@@ -204,6 +246,42 @@ router.post('/speaking', upload.single('audio'), async (req: Request, res: Respo
       res.status(400).json({
         error: 'Bad Request',
         message: 'Audio file is required. Please upload a file with key "audio".',
+      });
+      return;
+    }
+
+    // Additional validation for Requirements 15.1, 15.2, 15.3, 15.4, 15.5
+    const errors: string[] = [];
+    
+    // Requirement 15.1, 15.3: Validate file size < 10MB
+    const maxSizeBytes = 10 * 1024 * 1024; // 10MB
+    if (req.file.size > maxSizeBytes) {
+      errors.push('Audio file size exceeds 10 megabytes limit');
+    }
+    
+    // Requirement 15.2, 15.4: Validate WAV format (MIME type and extension)
+    const isWavMimeType = req.file.mimetype === 'audio/wav' || req.file.mimetype === 'audio/x-wav';
+    const hasWavExtension = req.file.originalname.toLowerCase().endsWith('.wav');
+    
+    if (!isWavMimeType || !hasWavExtension) {
+      errors.push('Audio file format must be WAV');
+    }
+    
+    // Requirement 15.5: Return all validation errors with 400 status
+    if (errors.length > 0) {
+      // Clean up uploaded file before returning error
+      if (req.file.path) {
+        try {
+          await unlink(req.file.path);
+        } catch (unlinkError) {
+          console.error(`Failed to delete invalid uploaded file ${req.file.path}:`, unlinkError);
+        }
+      }
+      
+      res.status(400).json({
+        error: 'Validation Error',
+        message: 'Audio file validation failed',
+        details: errors,
       });
       return;
     }

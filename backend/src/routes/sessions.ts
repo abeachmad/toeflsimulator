@@ -16,11 +16,16 @@ import { Router, Request, Response, NextFunction } from 'express';
 import { z } from 'zod';
 import { SessionManager, ModuleName } from '../services/SessionManager.js';
 import { pool } from '../config/database.js';
+import { IRT3PLScorer } from '../services/IRT3PLScorer.js';
+import { Item, ItemResponse, Section } from '../models/irt.types.js';
 
 const router = Router();
 
 // Initialize SessionManager with database pool
 const sessionManager = new SessionManager(pool);
+
+// Initialize IRT Scorer for reading/listening sections
+const irtScorer = new IRT3PLScorer(pool);
 
 /**
  * Zod validation schemas
@@ -59,6 +64,14 @@ const sessionIdSchema = z.string().uuid('sessionId must be a valid UUID');
 // Schema for updating ability estimate
 const abilityUpdateSchema = z.object({
   theta: z.number().min(-3).max(3, 'theta must be between -3 and 3'),
+});
+
+// Schema for section submission (Requirements 3.2, 8.1, 8.2)
+const sectionSubmitSchema = z.object({
+  answers: z.array(z.object({
+    itemId: z.string().min(1, 'itemId is required'),
+    answer: z.string(), // String representation of answer
+  })),
 });
 
 /**
@@ -326,6 +339,199 @@ router.put('/:sessionId/ability/:section', validateRequest(abilityUpdateSchema),
       return;
     }
     console.error('Error updating ability estimate:', error);
+    next(error);
+  }
+});
+
+/**
+ * POST /api/sessions/:sessionId/sections/:section/submit
+ * Submit answers for a section and save to database
+ * Requirements: 3.2, 8.1, 8.2
+ * 
+ * Path params: sessionId (string), section (string)
+ * Request body: { answers: Array<{ itemId: string, answer: string }> }
+ * Response: Success message
+ */
+router.post('/:sessionId/sections/:section/submit', validateRequest(sectionSubmitSchema), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const { sessionId, section } = req.params;
+    const { answers } = req.body;
+    
+    console.log('[Section Submit] Received submission:', {
+      sessionId,
+      section,
+      answerCount: answers.length
+    });
+    
+    // Validate sessionId format
+    const validationResult = sessionIdSchema.safeParse(sessionId);
+    if (!validationResult.success) {
+      res.status(400).json({
+        error: 'Bad Request',
+        message: 'Invalid sessionId format',
+        details: validationResult.error.errors.map(err => ({
+          path: err.path.join('.'),
+          message: err.message,
+        })),
+      });
+      return;
+    }
+    
+    // Validate section name
+    const validSections = ['reading', 'listening', 'writing', 'speaking'];
+    if (!validSections.includes(section)) {
+      res.status(400).json({
+        error: 'Bad Request',
+        message: `Invalid section. Must be one of: ${validSections.join(', ')}`,
+      });
+      return;
+    }
+    
+    // Get current session to retrieve existing answers
+    const sessionResult = await pool.query(
+      'SELECT answers FROM exam_sessions WHERE session_id = $1',
+      [sessionId]
+    );
+
+    if (sessionResult.rows.length === 0) {
+      res.status(404).json({
+        error: 'Not Found',
+        message: 'Session not found',
+      });
+      return;
+    }
+
+    // Merge new answers with existing answers (Requirement 8.1, 8.2)
+    let existingAnswers = sessionResult.rows[0].answers || [];
+    
+    // Ensure existingAnswers is an array
+    if (!Array.isArray(existingAnswers)) {
+      existingAnswers = [];
+    }
+    
+    const answersMap = new Map<string, string>();
+    
+    // Load existing answers into map
+    for (const ans of existingAnswers) {
+      if (ans.itemId) {
+        answersMap.set(ans.itemId, ans.answer);
+      }
+    }
+    
+    // Update with new answers
+    for (const { itemId, answer } of answers) {
+      answersMap.set(itemId, answer);
+    }
+    
+    // Convert map back to array
+    const updatedAnswers = Array.from(answersMap.entries()).map(([itemId, answer]) => ({
+      itemId,
+      answer
+    }));
+
+    // Save updated answers to session
+    await pool.query(
+      'UPDATE exam_sessions SET answers = $1, updated_at = NOW() WHERE session_id = $2',
+      [JSON.stringify(updatedAnswers), sessionId]
+    );
+    
+    console.log('[Section Submit] Saved answers to database:', {
+      sessionId,
+      section,
+      count: answers.length,
+      totalAnswers: updatedAnswers.length
+    });
+    
+    // Calculate score for reading/listening sections (IRT-based)
+    // Requirements: 9.1, 9.2, 9.3, 9.4
+    if (section === 'reading' || section === 'listening') {
+      try {
+        console.log('[Section Submit] Calculating IRT score for section:', section);
+        
+        // Fetch items for this section with IRT parameters
+        const itemsResult = await pool.query<Item>(
+          `SELECT item_id as id, section, type, difficulty_level, content, options, correct_answer, irt_parameters, metadata
+           FROM test_items
+           WHERE section = $1`,
+          [section]
+        );
+        
+        const items = itemsResult.rows;
+        
+        if (items.length === 0) {
+          console.warn('[Section Submit] No items found for section:', section);
+          res.status(200).json({
+            message: 'Section answers submitted successfully (no items to score)',
+            data: {
+              section,
+              answersSubmitted: answers.length
+            }
+          });
+          return;
+        }
+        
+        // Convert submitted answers to ItemResponse format
+        const responses: ItemResponse[] = answers.map((ans: { itemId: string, answer: string }) => {
+          const item = items.find(it => it.id === ans.itemId);
+          const isCorrect = item ? item.correct_answer === ans.answer : false;
+          
+          return {
+            itemId: ans.itemId,
+            isCorrect
+          };
+        });
+        
+        // Calculate theta (ability estimate) using IRT 3PL MLE
+        const theta = irtScorer.estimateAbilityMLE(responses, items);
+        console.log('[Section Submit] Estimated theta:', theta);
+        
+        // Convert theta to CEFR band and scale score
+        const cefrBand = await irtScorer.convertToCEFR(theta, section as Section);
+        const scaleScore = await irtScorer.convertToScaleScore(theta, section as Section);
+        
+        // Clamp scores to valid ranges
+        const clampedScores = irtScorer.clampScores({ cefrBand, scaleScore });
+        
+        console.log('[Section Submit] Calculated scores:', {
+          theta,
+          cefrBand: clampedScores.cefrBand,
+          scaleScore: clampedScores.scaleScore
+        });
+        
+        // Count correct answers
+        const correctCount = responses.filter(r => r.isCorrect).length;
+        
+        res.status(200).json({
+          message: 'Section answers submitted successfully',
+          data: {
+            section,
+            answersSubmitted: answers.length,
+            score: {
+              cefrBand: clampedScores.cefrBand,
+              scaleScore: clampedScores.scaleScore,
+              theta
+            },
+            correct: correctCount,
+            total: responses.length
+          }
+        });
+        return;
+      } catch (error) {
+        console.error('[Section Submit] Error calculating IRT score:', error);
+        // Fall through to return basic success response
+      }
+    }
+    
+    // For writing/speaking sections (graded separately via Gemini API)
+    res.status(200).json({
+      message: 'Section answers submitted successfully',
+      data: {
+        section,
+        answersSubmitted: answers.length
+      }
+    });
+  } catch (error) {
+    console.error('[Section Submit] Error submitting section:', error);
     next(error);
   }
 });

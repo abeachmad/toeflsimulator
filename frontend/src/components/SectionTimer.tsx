@@ -36,9 +36,71 @@ export function SectionTimer({ section, timeLimit, onExpire }: SectionTimerProps
     return 'text-gray-700' // Default color
   }
 
-  // Start timer with backend API
+  // Retrieve existing timer state from backend (Requirement 12.2)
+  const retrieveTimerState = useCallback(async (sessionId: string) => {
+    try {
+      const response = await fetch(`${API_URL}/api/timers/${sessionId}`)
+
+      if (response.status === 410) {
+        // Timer expired (Requirement 2.6)
+        console.log('[SectionTimer] Timer already expired')
+        setTimerId(sessionId)
+        setRemainingSeconds(0)
+        setIsExpired(true)
+        onExpire()
+        return true // Timer exists but expired
+      }
+
+      if (response.status === 404) {
+        // Timer doesn't exist yet
+        console.log('[SectionTimer] No existing timer found')
+        return false
+      }
+
+      if (!response.ok) {
+        console.error('Failed to retrieve timer state:', response.statusText)
+        return false
+      }
+
+      const data = await response.json()
+      const { startTime, expirationTime, remainingTime } = data.data
+
+      // Calculate remaining time from start_time and current_time (Requirements 12.3, 12.4)
+      const now = Date.now()
+      const expiration = new Date(expirationTime).getTime()
+      const calculatedRemaining = Math.floor((expiration - now) / 1000)
+      
+      // Clamp remaining time to zero if calculated value is negative (Requirement 12.4)
+      const clampedRemaining = Math.max(0, calculatedRemaining)
+      
+      console.log('[SectionTimer] Retrieved timer state:', {
+        startTime,
+        expirationTime,
+        serverRemainingTime: remainingTime,
+        calculatedRemaining,
+        clampedRemaining
+      })
+
+      setTimerId(sessionId)
+      setRemainingSeconds(clampedRemaining)
+      
+      if (clampedRemaining === 0) {
+        setIsExpired(true)
+        onExpire()
+      }
+      
+      return true // Timer exists
+    } catch (error) {
+      console.error('Error retrieving timer state:', error)
+      return false
+    }
+  }, [onExpire])
+
+  // Start timer with backend API (Requirement 12.1)
   const startTimer = useCallback(async (sessionId: string) => {
     try {
+      console.log('[SectionTimer] Starting new timer:', { sessionId, section, duration: timeLimit })
+      
       const response = await fetch(`${API_URL}/api/timers`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -55,12 +117,33 @@ export function SectionTimer({ section, timeLimit, onExpire }: SectionTimerProps
       }
 
       const data = await response.json()
+      console.log('[SectionTimer] Timer started successfully:', data.data)
+      
       setTimerId(data.data.timerId)
       setRemainingSeconds(data.data.remainingTime)
     } catch (error) {
       console.error('Error starting timer:', error)
     }
   }, [section, timeLimit])
+
+  // Stop timer via backend API (Requirement 12.5)
+  const stopTimer = useCallback(async (id: string) => {
+    try {
+      console.log('[SectionTimer] Stopping timer:', id)
+      
+      const response = await fetch(`${API_URL}/api/timers/${id}`, { 
+        method: 'DELETE' 
+      })
+      
+      if (response.ok) {
+        console.log('[SectionTimer] Timer stopped successfully')
+      } else {
+        console.error('Failed to stop timer:', response.statusText)
+      }
+    } catch (error) {
+      console.error('Error stopping timer:', error)
+    }
+  }, [])
 
   // Poll timer state from backend
   const pollTimerState = useCallback(async (id: string) => {
@@ -69,9 +152,14 @@ export function SectionTimer({ section, timeLimit, onExpire }: SectionTimerProps
 
       if (response.status === 410) {
         // Timer expired (Requirement 2.6)
-        setIsExpired(true)
-        setRemainingSeconds(0)
-        onExpire()
+        if (!isExpired) {
+          console.log('[SectionTimer] Timer expired (410 response)')
+          setIsExpired(true)
+          setRemainingSeconds(0)
+          // Call backend stop API when timer reaches zero (Requirement 12.5)
+          await stopTimer(id)
+          onExpire()
+        }
         return
       }
 
@@ -81,19 +169,32 @@ export function SectionTimer({ section, timeLimit, onExpire }: SectionTimerProps
       }
 
       const data = await response.json()
-      setRemainingSeconds(Math.max(0, data.data.remainingTime))
+      const { expirationTime } = data.data
+      
+      // Calculate remaining time from expiration time and current time (Requirements 12.3, 12.4)
+      const now = Date.now()
+      const expiration = new Date(expirationTime).getTime()
+      const calculatedRemaining = Math.floor((expiration - now) / 1000)
+      
+      // Clamp remaining time to zero if calculated value is negative (Requirement 12.4)
+      const clampedRemaining = Math.max(0, calculatedRemaining)
+      
+      setRemainingSeconds(clampedRemaining)
 
       // Check if timer just expired
-      if (data.data.remainingTime <= 0 && !isExpired) {
+      if (clampedRemaining <= 0 && !isExpired) {
+        console.log('[SectionTimer] Timer just expired')
         setIsExpired(true)
+        // Call backend stop API when timer reaches zero (Requirement 12.5)
+        await stopTimer(id)
         onExpire()
       }
     } catch (error) {
       console.error('Error polling timer state:', error)
     }
-  }, [onExpire, isExpired])
+  }, [onExpire, isExpired, stopTimer])
 
-  // Initialize timer on mount
+  // Initialize timer on mount - retrieve existing state or start new (Requirement 12.2)
   useEffect(() => {
     const sessionId = localStorage.getItem('sessionId')
     if (!sessionId) {
@@ -101,8 +202,18 @@ export function SectionTimer({ section, timeLimit, onExpire }: SectionTimerProps
       return
     }
 
-    startTimer(sessionId)
-  }, [startTimer])
+    const initializeTimer = async () => {
+      // First, try to retrieve existing timer state (Requirement 12.2)
+      const timerExists = await retrieveTimerState(sessionId)
+      
+      // If no timer exists, start a new one (Requirement 12.1)
+      if (!timerExists) {
+        await startTimer(sessionId)
+      }
+    }
+
+    initializeTimer()
+  }, [retrieveTimerState, startTimer])
 
   // Poll timer state every second
   useEffect(() => {
@@ -115,15 +226,15 @@ export function SectionTimer({ section, timeLimit, onExpire }: SectionTimerProps
     return () => clearInterval(interval)
   }, [timerId, isExpired, pollTimerState])
 
+  // Call backend stop API when section completes (Requirement 12.5)
   // Stop timer on unmount
   useEffect(() => {
     return () => {
       if (timerId) {
-        fetch(`${API_URL}/api/timers/${timerId}`, { method: 'DELETE' })
-          .catch(err => console.error('Error stopping timer:', err))
+        stopTimer(timerId)
       }
     }
-  }, [timerId])
+  }, [timerId, stopTimer])
 
   return (
     <div 

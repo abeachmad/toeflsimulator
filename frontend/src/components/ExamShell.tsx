@@ -142,7 +142,7 @@ export function ExamShell() {
             <Route path="/" element={<LandingPage />} />
             <Route path="/exam/start" element={<ExamStart />} />
             <Route path="/exam/section/:id" element={<SectionDisplay />} />
-            <Route path="/exam/score" element={<ScoreReport />} />
+            <Route path="/exam/results" element={<ScoreReport />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </Suspense>

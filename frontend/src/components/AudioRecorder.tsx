@@ -118,11 +118,33 @@ export function AudioRecorder({
     let stream: MediaStream
     try {
       stream = await navigator.mediaDevices.getUserMedia({ audio: true })
-    } catch {
-      // Requirement 20.7 — handle microphone denial
-      setErrorMessage(
-        'Microphone access was denied. You may skip this section or grant permission and try again.',
-      )
+    } catch (error) {
+      // Requirements 13.1, 13.2, 13.3 — handle microphone permission denial
+      const errorName = error instanceof Error ? error.name : 'Unknown'
+      
+      // Detect browser type for specific instructions
+      const userAgent = navigator.userAgent.toLowerCase()
+      let browserInstructions = ''
+      
+      if (userAgent.includes('chrome') && !userAgent.includes('edg')) {
+        browserInstructions = 'In Chrome: Click the camera icon in the address bar, select "Allow", and try again.'
+      } else if (userAgent.includes('firefox')) {
+        browserInstructions = 'In Firefox: Click the microphone icon in the address bar, remove the block, and try again.'
+      } else if (userAgent.includes('safari')) {
+        browserInstructions = 'In Safari: Go to Safari → Settings → Websites → Microphone, and allow access for this site.'
+      } else if (userAgent.includes('edg')) {
+        browserInstructions = 'In Edge: Click the camera icon in the address bar, select "Allow", and try again.'
+      } else {
+        browserInstructions = 'Please check your browser settings to allow microphone access for this site.'
+      }
+      
+      const detailedMessage = errorName === 'NotAllowedError' || errorName === 'PermissionDeniedError'
+        ? `Microphone access is required to record your speaking response. ${browserInstructions}`
+        : errorName === 'NotFoundError'
+        ? `No microphone was found on your device. Please connect a microphone and try again.`
+        : `Unable to access microphone: ${errorName}. ${browserInstructions}`
+      
+      setErrorMessage(detailedMessage)
       setRecordingState('error')
       return
     }
@@ -271,6 +293,11 @@ export function AudioRecorder({
               Press <strong>Start Recording</strong> when ready to speak.
             </span>
           )}
+          {recordingState === 'error' && (
+            <span className="text-yellow-400 text-sm">
+              Unable to access microphone. Please check permissions and try again.
+            </span>
+          )}
           {recordingState === 'stopped' && (
             <span className="text-yellow-400 text-sm">
               Recording stopped ({formatDuration(elapsed)}). Review and submit when ready.
@@ -318,17 +345,17 @@ export function AudioRecorder({
 
         {/* Action buttons */}
         <div className="flex items-center gap-3 flex-wrap">
-          {recordingState === 'idle' && (
+          {(recordingState === 'idle' || recordingState === 'error') && (
             <button
               type="button"
               onClick={startRecording}
-              className="bg-red-600 hover:bg-red-700 text-white font-semibold px-6 py-3 rounded transition-colors focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:ring-offset-gray-900 flex items-center gap-2"
+              className="bg-red-600 hover:bg-red-700 text-white font-semibold px-6 py-3 rounded transition-colors focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:ring-offset-gray-900 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
               aria-label="Start recording"
             >
               <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
                 <circle cx="12" cy="12" r="6" />
               </svg>
-              Start Recording
+              {recordingState === 'error' ? 'Retry Recording' : 'Start Recording'}
             </button>
           )}
 
@@ -377,9 +404,17 @@ export function AudioRecorder({
       {errorMessage && (
         <div
           role="alert"
-          className="bg-yellow-900 border border-yellow-600 text-yellow-200 rounded p-3 text-sm"
+          className="bg-red-900 border-l-4 border-red-500 text-red-200 rounded p-4 text-sm"
         >
-          {errorMessage}
+          <div className="flex items-start gap-3">
+            <svg className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+            </svg>
+            <div className="flex-1">
+              <p className="font-semibold mb-1">Microphone Access Required</p>
+              <p>{errorMessage}</p>
+            </div>
+          </div>
         </div>
       )}
 

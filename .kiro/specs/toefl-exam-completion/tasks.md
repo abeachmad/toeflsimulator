@@ -32,7 +32,7 @@ This implementation plan completes the TOEFL iBT 2026 simulator by integrating e
   - Verify timer displays in MM:SS format with zero-padded minutes and seconds
   - _Requirements: 2.5_
 
-- [ ] 3. Implement section completion and auto-submit logic
+- [x] 3. Implement section completion and auto-submit logic
   - Create `handleSectionComplete` function in `SectionDisplay.tsx`
   - Collect all answers from current section into submission payload
   - Make POST request to backend submission endpoint with session ID, section ID, and answers
@@ -46,7 +46,7 @@ This implementation plan completes the TOEFL iBT 2026 simulator by integrating e
   - Verify all answers in the set are included in the submission payload
   - _Requirements: 3.2_
 
-- [ ] 4. Implement section navigation sequence
+- [x] 4. Implement section navigation sequence
   - Create `getNextSection` helper function with hardcoded order (reading → listening → writing → speaking → results)
   - Update `handleSectionComplete` to call `getNextSection` and navigate to next section or results page
   - Handle navigation failure by keeping user on current section
@@ -59,10 +59,10 @@ This implementation plan completes the TOEFL iBT 2026 simulator by integrating e
   - Test navigation sequence completes in correct order
   - _Requirements: 4.1, 4.2, 4.3, 4.4_
 
-- [~] 5. Checkpoint - Verify timer and navigation integration
+- [x] 5. Checkpoint - Verify timer and navigation integration
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 6. Integrate WritingSection component
+- [x] 6. Integrate WritingSection component
   - Import `WritingSection` component into `SectionDisplay.tsx`
   - Add conditional rendering for `id === 'writing'` to display `WritingSection` instead of default question display
   - Pass current writing task as `question` prop with proper type casting
@@ -85,7 +85,7 @@ This implementation plan completes the TOEFL iBT 2026 simulator by integrating e
   - Test that only one task type displays at a time
   - _Requirements: 5.4, 10.3, 10.4, 10.5_
 
-- [ ] 7. Integrate AudioRecorder component for Speaking section
+- [x] 7. Integrate AudioRecorder component for Speaking section
   - Import `AudioRecorder` component into `SectionDisplay.tsx`
   - Add conditional rendering for `id === 'speaking'` to display task prompt and `AudioRecorder`
   - Create task prompt display showing task number and content
@@ -101,7 +101,7 @@ This implementation plan completes the TOEFL iBT 2026 simulator by integrating e
   - Test Task 4 uses 20s prep time and 60s response time
   - _Requirements: 11.1, 11.2, 11.3, 11.4_
 
-- [ ] 8. Implement backend submission endpoint
+- [x] 8. Implement backend submission endpoint
   - Create POST route `/api/sessions/:sessionId/sections/:section/submit` in `backend/src/routes/sessions.ts`
   - Parse `answers` array from request body containing `{itemId, answer}` objects
   - Save each answer to `responses` table with INSERT...ON CONFLICT UPDATE pattern
@@ -131,17 +131,17 @@ This implementation plan completes the TOEFL iBT 2026 simulator by integrating e
   - Verify mapping returns valid CEFR band from {A1, A2, B1, B2, C1, C2}
   - _Requirements: 9.1, 9.2, 9.3, 9.4_
 
-- [~] 9. Checkpoint - Verify submission and scoring pipeline
+- [x] 9. Checkpoint - Verify submission and scoring pipeline
   - Ensure all tests pass, ask the user if questions arise.
 
-- [~] 10. Implement score storage in frontend exam state
+- [x] 10. Implement score storage in frontend exam state
   - Create or update `setSectionScore` function in exam store (`frontend/src/stores/examStore.ts`)
   - Store `SectionScore` objects with `cefrBand`, `scaleScore`, and `feedback` properties
   - Call `setSectionScore` after receiving score from backend (reading/listening) or grading API (writing/speaking)
   - Persist scores to localStorage or session storage for resilience
   - _Requirements: 7.1, 7.2, 7.5_
 
-- [ ] 11. Implement ScoreReport display components
+- [x] 11. Implement ScoreReport display components
   - Verify `ScoreReport` component exists at `frontend/src/components/ScoreReport.tsx`
   - Implement section score display with scale score (0-30) and CEFR band for each section
   - Implement total score calculation as sum of four section scale scores
@@ -165,7 +165,7 @@ This implementation plan completes the TOEFL iBT 2026 simulator by integrating e
   - Verify completion badge count equals number of sections with submitted scores
   - _Requirements: 7.1, 7.2, 7.3, 7.4, 7.5_
 
-- [ ] 12. Implement timer state persistence
+- [x] 12. Implement timer state persistence
   - Update `SectionTimer` component to call backend timer API on start
   - Implement timer state retrieval on component mount via GET `/api/timers/:sessionId/:section`
   - Calculate remaining time from start time and current time when state is retrieved
@@ -181,7 +181,7 @@ This implementation plan completes the TOEFL iBT 2026 simulator by integrating e
   - Test that negative values are clamped to zero
   - _Requirements: 12.4_
 
-- [ ] 13. Implement microphone permission error handling
+- [x] 13. Implement microphone permission error handling
   - Add permission request logic in `AudioRecorder` component
   - Detect permission denial from browser API
   - Display error message explaining microphone access is required
@@ -196,7 +196,7 @@ This implementation plan completes the TOEFL iBT 2026 simulator by integrating e
   - Verify recording cannot start when permission is denied
   - _Requirements: 13.1, 13.2, 13.3_
 
-- [ ] 14. Implement grading API failure handling with fallback scores
+- [x] 14. Implement grading API failure handling with fallback scores
   - Add 30-second timeout to Gemini API grading calls in backend
   - Return fallback score when API fails or times out
   - Flag response for manual review in database by adding `needs_review` column or status field
@@ -211,7 +211,7 @@ This implementation plan completes the TOEFL iBT 2026 simulator by integrating e
   - Verify preliminary message displays in score report
   - _Requirements: 14.1, 14.2, 14.3_
 
-- [ ] 15. Implement audio file validation
+- [x] 15. Implement audio file validation
   - Add validation logic in backend submission endpoint before processing audio
   - Check file size is less than 10 megabytes
   - Check file format is WAV using file extension and MIME type
@@ -281,7 +281,7 @@ This implementation plan completes the TOEFL iBT 2026 simulator by integrating e
   - Verify ARIA labels are present on interactive elements
   - _Requirements: 18.1, 18.2, 18.3_
 
-- [~] 19. Final checkpoint - End-to-end integration testing
+- [ ] 19. Final checkpoint - End-to-end integration testing
   - Ensure all tests pass, ask the user if questions arise.
 
 ## Notes

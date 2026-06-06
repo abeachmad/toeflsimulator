@@ -69,9 +69,11 @@ describe('AudioRecorder', () => {
   }
 
   function mockMicrophoneDenied() {
+    const error = new Error('NotAllowedError')
+    error.name = 'NotAllowedError'
     Object.defineProperty(navigator, 'mediaDevices', {
       value: {
-        getUserMedia: vi.fn().mockRejectedValue(new Error('NotAllowedError')),
+        getUserMedia: vi.fn().mockRejectedValue(error),
       },
       configurable: true,
     })
@@ -99,7 +101,7 @@ describe('AudioRecorder', () => {
     })
   })
 
-  it('shows microphone denial error on getUserMedia failure', async () => {
+  it('shows microphone denial error with browser-specific instructions', async () => {
     const user = userEvent.setup()
     mockMicrophoneDenied()
 
@@ -108,7 +110,12 @@ describe('AudioRecorder', () => {
 
     await waitFor(() => {
       expect(screen.getByRole('alert')).toBeInTheDocument()
-      expect(screen.getByText(/microphone access was denied/i)).toBeInTheDocument()
+      expect(screen.getByText(/microphone access is required/i)).toBeInTheDocument()
+    })
+    
+    // Verify Retry button appears after error (text changes but aria-label stays "Start recording")
+    await waitFor(() => {
+      expect(screen.getByText(/retry recording/i)).toBeInTheDocument()
     })
   })
 
@@ -172,5 +179,100 @@ describe('AudioRecorder', () => {
   it('has main aria-label for accessibility', () => {
     render(<AudioRecorder question={mockQuestion} />)
     expect(screen.getByRole('main', { name: /speaking task/i })).toBeInTheDocument()
+  })
+
+  // Requirements 13.1, 13.2, 13.3 - Microphone Permission Error Handling
+  describe('Microphone Permission Error Handling', () => {
+    it('detects permission denial and prevents recording interface from activating', async () => {
+      const user = userEvent.setup()
+      mockMicrophoneDenied()
+
+      render(<AudioRecorder question={mockQuestion} />)
+      
+      // Try to start recording
+      await user.click(screen.getByRole('button', { name: /start recording/i }))
+
+      // Verify error state is set
+      await waitFor(() => {
+        expect(screen.getByRole('alert')).toBeInTheDocument()
+        expect(screen.getByText(/unable to access microphone/i)).toBeInTheDocument()
+      })
+
+      // Verify recording interface did not activate (no stop button, no progress bar)
+      expect(screen.queryByRole('button', { name: /stop recording/i })).not.toBeInTheDocument()
+      expect(screen.queryByRole('progressbar')).not.toBeInTheDocument()
+    })
+
+    it('displays error message explaining microphone access is required', async () => {
+      const user = userEvent.setup()
+      mockMicrophoneDenied()
+
+      render(<AudioRecorder question={mockQuestion} />)
+      await user.click(screen.getByRole('button', { name: /start recording/i }))
+
+      await waitFor(() => {
+        const alert = screen.getByRole('alert')
+        expect(alert).toBeInTheDocument()
+        expect(alert.textContent).toMatch(/microphone access is required/i)
+      })
+    })
+
+    it('displays instructions for enabling microphone in browser settings', async () => {
+      const user = userEvent.setup()
+      mockMicrophoneDenied()
+
+      render(<AudioRecorder question={mockQuestion} />)
+      await user.click(screen.getByRole('button', { name: /start recording/i }))
+
+      await waitFor(() => {
+        const alert = screen.getByRole('alert')
+        // Should contain browser-specific instructions (Chrome, Firefox, Safari, Edge, or generic)
+        expect(alert.textContent).toMatch(/(Chrome|Firefox|Safari|Edge|browser settings)/i)
+      })
+    })
+
+    it('allows retry after permission denial', async () => {
+      const user = userEvent.setup()
+      mockMicrophoneDenied()
+
+      render(<AudioRecorder question={mockQuestion} />)
+      await user.click(screen.getByRole('button', { name: /start recording/i }))
+
+      // Wait for error state (text changes to "Retry Recording")
+      await waitFor(() => {
+        expect(screen.getByText(/retry recording/i)).toBeInTheDocument()
+      })
+
+      // Now grant permission
+      mockMicrophoneGranted()
+
+      // Click retry (use aria-label which is still "Start recording")
+      await user.click(screen.getByRole('button', { name: /start recording/i }))
+
+      // Should start recording successfully
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: /stop recording/i })).toBeInTheDocument()
+      })
+    })
+
+    it('handles NotFoundError (no microphone device)', async () => {
+      const user = userEvent.setup()
+      const error = new Error('NotFoundError')
+      error.name = 'NotFoundError'
+      Object.defineProperty(navigator, 'mediaDevices', {
+        value: {
+          getUserMedia: vi.fn().mockRejectedValue(error),
+        },
+        configurable: true,
+      })
+
+      render(<AudioRecorder question={mockQuestion} />)
+      await user.click(screen.getByRole('button', { name: /start recording/i }))
+
+      await waitFor(() => {
+        const alert = screen.getByRole('alert')
+        expect(alert.textContent).toMatch(/no microphone was found/i)
+      })
+    })
   })
 })

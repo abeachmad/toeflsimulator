@@ -30,6 +30,7 @@ export interface WritingScore {
   scaleScore: number; // 0-30
   grammarCorrections: GrammarFeedback[];
   lexicalAnalysis: LexicalFeedback;
+  needsReview?: boolean; // Flag for manual review when using fallback scores
 }
 
 export interface GrammarFeedback {
@@ -59,6 +60,7 @@ export interface SpeakingScore {
   completenessScore: number; // 0-100
   cefrBand: number; // 1-6
   scaleScore: number; // 0-30
+  needsReview?: boolean; // Flag for manual review when using fallback scores
 }
 
 // ============================================================================
@@ -177,7 +179,7 @@ export class GeminiGraderService {
   /**
    * Grade writing response using Gemini Flash model
    * Implements structured JSON output with response schema
-   * Requirements: 5.5, 5.6, 5.7, 5.8, 5.9, 17.1, 17.3, 17.5, 19.2
+   * Requirements: 5.5, 5.6, 5.7, 5.8, 5.9, 17.1, 17.3, 17.5, 19.2, 14.1, 14.2
    * 
    * @param request - Writing grade request with text and task metadata
    * @returns Writing score with CEFR band, scale score, and feedback
@@ -185,15 +187,20 @@ export class GeminiGraderService {
   async gradeWriting(request: WritingGradeRequest): Promise<WritingScore> {
     try {
       return await this.circuitBreaker.execute(async () => {
-        return this.retryWithBackoff(
-          async () => this._gradeWritingInternal(request),
-          3,
-          1000
+        // Wrap grading with 30-second timeout (Requirement 14.1)
+        return await this.withTimeout(
+          this.retryWithBackoff(
+            async () => this._gradeWritingInternal(request),
+            3,
+            1000
+          ),
+          30000 // 30 seconds
         );
       });
     } catch (error) {
-      console.error('Gemini writing grading failed, returning fallback scores:', error);
-      // Return default scores as per Requirement 19.2
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      console.error('Gemini writing grading failed, returning fallback scores:', errorMessage);
+      // Return default scores with manual review flag (Requirement 14.2, 14.3)
       return this.getDefaultWritingScore();
     }
   }
@@ -330,7 +337,7 @@ Return ONLY valid JSON matching the specified schema.
   /**
    * Assess pronunciation using Gemini Flash Pronunciation API
    * Uploads audio file and extracts pronunciation metrics
-   * Requirements: 6.3, 6.4, 6.5, 6.6, 6.7, 17.1, 17.4, 17.5, 19.2
+   * Requirements: 6.3, 6.4, 6.5, 6.6, 6.7, 17.1, 17.4, 17.5, 19.2, 14.1, 14.2
    * 
    * @param audioPath - Path to audio file (WAV format)
    * @param referenceText - Expected text that should have been spoken
@@ -339,15 +346,20 @@ Return ONLY valid JSON matching the specified schema.
   async assessPronunciation(audioPath: string, referenceText: string): Promise<SpeakingScore> {
     try {
       return await this.circuitBreaker.execute(async () => {
-        return this.retryWithBackoff(
-          async () => this._assessPronunciationInternal(audioPath, referenceText),
-          3,
-          1000
+        // Wrap assessment with 30-second timeout (Requirement 14.1)
+        return await this.withTimeout(
+          this.retryWithBackoff(
+            async () => this._assessPronunciationInternal(audioPath, referenceText),
+            3,
+            1000
+          ),
+          30000 // 30 seconds
         );
       });
     } catch (error) {
-      console.error('Gemini pronunciation assessment failed, returning fallback scores:', error);
-      // Return default scores as per Requirement 19.2
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      console.error('Gemini pronunciation assessment failed, returning fallback scores:', errorMessage);
+      // Return default scores with manual review flag (Requirement 14.2, 14.3)
       return this.getDefaultSpeakingScore();
     }
   }
@@ -505,6 +517,23 @@ Return ONLY valid JSON.
   }
 
   /**
+   * Wrap a promise with a timeout
+   * Requirement: 14.1
+   * 
+   * @param promise - Promise to wrap with timeout
+   * @param timeoutMs - Timeout in milliseconds
+   * @returns Result of the promise or throws timeout error
+   */
+  private async withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
+    return Promise.race([
+      promise,
+      new Promise<T>((_, reject) =>
+        setTimeout(() => reject(new Error(`Operation timed out after ${timeoutMs}ms`)), timeoutMs)
+      ),
+    ]);
+  }
+
+  /**
    * Get circuit breaker state for monitoring
    */
   getCircuitState(): CircuitState {
@@ -520,7 +549,7 @@ Return ONLY valid JSON.
 
   /**
    * Get default writing score for error scenarios
-   * Requirement: 19.2
+   * Requirement: 19.2, 14.2
    */
   getDefaultWritingScore(): WritingScore {
     return {
@@ -532,13 +561,14 @@ Return ONLY valid JSON.
         lexicalDiversity: 0,
         academicWordCount: 0,
         suggestions: ['Grading service temporarily unavailable. Please try again later.']
-      }
+      },
+      needsReview: true // Flag for manual review (Requirement 14.2)
     };
   }
 
   /**
    * Get default speaking score for error scenarios
-   * Requirement: 19.2
+   * Requirement: 19.2, 14.2
    */
   getDefaultSpeakingScore(): SpeakingScore {
     return {
@@ -547,7 +577,8 @@ Return ONLY valid JSON.
       prosodyScore: 50,
       completenessScore: 50,
       cefrBand: 3,
-      scaleScore: 15
+      scaleScore: 15,
+      needsReview: true // Flag for manual review (Requirement 14.2)
     };
   }
 }
