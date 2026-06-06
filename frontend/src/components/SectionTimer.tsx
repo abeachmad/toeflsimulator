@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from 'react'
+import { useExamStore } from '../stores'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000'
 
@@ -196,11 +197,15 @@ export function SectionTimer({ section, timeLimit, onExpire }: SectionTimerProps
 
   // Initialize timer on mount - retrieve existing state or start new (Requirement 12.2)
   useEffect(() => {
-    const sessionId = localStorage.getItem('sessionId')
+    // ✅ FIX: Read sessionId from Zustand store instead of localStorage directly
+    const { sessionId } = useExamStore.getState()
+    
     if (!sessionId) {
-      console.error('No session ID found for timer')
+      console.error('[SectionTimer] No session ID found for timer')
       return
     }
+
+    console.log('[SectionTimer] Initializing timer with sessionId:', sessionId)
 
     const initializeTimer = async () => {
       // First, try to retrieve existing timer state (Requirement 12.2)
