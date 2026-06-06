@@ -208,17 +208,13 @@ export function SectionTimer({ section, timeLimit, onExpire }: SectionTimerProps
     console.log('[SectionTimer] Initializing timer with sessionId:', sessionId)
 
     const initializeTimer = async () => {
-      // First, try to retrieve existing timer state (Requirement 12.2)
-      const timerExists = await retrieveTimerState(sessionId)
-      
-      // If no timer exists, start a new one (Requirement 12.1)
-      if (!timerExists) {
-        await startTimer(sessionId)
-      }
+      // Always start a new timer for this section (don't retrieve old one)
+      // This ensures each section gets its own timer with correct duration
+      await startTimer(sessionId)
     }
 
     initializeTimer()
-  }, [retrieveTimerState, startTimer])
+  }, [section, startTimer]) // Added 'section' as dependency to restart timer when section changes
 
   // Poll timer state every second
   useEffect(() => {
