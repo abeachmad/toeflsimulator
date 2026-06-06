@@ -28,7 +28,7 @@ export function LandingPage() {
               </div>
               <div>
                 <h3 className="text-white font-semibold">Reading Section</h3>
-                <p className="text-gray-400 text-sm">~50 items, 30 minutes</p>
+                <p className="text-gray-400 text-sm">20 questions, 35 minutes</p>
               </div>
             </div>
 
@@ -38,7 +38,7 @@ export function LandingPage() {
               </div>
               <div>
                 <h3 className="text-white font-semibold">Listening Section</h3>
-                <p className="text-gray-400 text-sm">~47 items, 29 minutes</p>
+                <p className="text-gray-400 text-sm">28 questions, 36 minutes</p>
               </div>
             </div>
 
@@ -48,7 +48,7 @@ export function LandingPage() {
               </div>
               <div>
                 <h3 className="text-white font-semibold">Writing Section</h3>
-                <p className="text-gray-400 text-sm">~12 items, 23 minutes</p>
+                <p className="text-gray-400 text-sm">2 tasks, 29 minutes</p>
               </div>
             </div>
 
@@ -58,7 +58,7 @@ export function LandingPage() {
               </div>
               <div>
                 <h3 className="text-white font-semibold">Speaking Section</h3>
-                <p className="text-gray-400 text-sm">~11 items, 8 minutes</p>
+                <p className="text-gray-400 text-sm">4 tasks, 16 minutes</p>
               </div>
             </div>
           </div>
@@ -71,7 +71,7 @@ export function LandingPage() {
           </button>
 
           <p className="text-gray-500 text-sm text-center mt-4">
-            Total test time: ~90 minutes
+            Total test time: ~116 minutes
           </p>
         </div>
 

@@ -81,6 +81,15 @@ export function AudioRecorder({
 
   const content = parseContent(question.content)
 
+  // Reset state when question changes (fix for persistent warning)
+  useEffect(() => {
+    setRecordingState('idle')
+    setElapsed(0)
+    setErrorMessage(null)
+    setScore(null)
+    chunksRef.current = []
+  }, [question.id])
+
   // Clean up on unmount
   useEffect(() => {
     return () => {

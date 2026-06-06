@@ -1,4 +1,7 @@
 import { useExamStore } from '../stores/examStore'
+import { AudioPlayer } from './AudioPlayer'
+
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000'
 
 /**
  * Listening Question Data Structure
@@ -130,10 +133,15 @@ export function ListeningQuestionDisplay({
           <p className="font-medium">Listen to the audio and choose the best response</p>
         </div>
 
-        {/* Transcript (since no real audio) */}
-        {content.transcript && (
+        {/* Audio Player */}
+        {content.audioUrl && (
+          <AudioPlayer audioUrl={`${API_URL}${content.audioUrl}`} className="mb-6" />
+        )}
+
+        {/* Transcript (for debugging/accessibility - can be hidden in production) */}
+        {content.transcript && !content.audioUrl && (
           <div className="bg-gray-800 border border-gray-700 rounded-lg p-4 mb-6">
-            <p className="text-xs uppercase tracking-wide text-gray-500 mb-2">Transcript:</p>
+            <p className="text-xs uppercase tracking-wide text-gray-500 mb-2">Transcript (No audio available):</p>
             <p className="text-gray-300 text-sm leading-relaxed whitespace-pre-wrap">{content.transcript}</p>
           </div>
         )}
@@ -158,10 +166,15 @@ export function ListeningQuestionDisplay({
           <p className="font-medium">Listen to the conversation</p>
         </div>
 
-        {/* Transcript (since no real audio) */}
-        {content.transcript && (
+        {/* Audio Player */}
+        {content.audioUrl && (
+          <AudioPlayer audioUrl={`${API_URL}${content.audioUrl}`} className="mb-6" />
+        )}
+
+        {/* Transcript (for debugging/accessibility - can be hidden in production) */}
+        {content.transcript && !content.audioUrl && (
           <div className="bg-gray-800 border border-gray-700 rounded-lg p-4 mb-6">
-            <p className="text-xs uppercase tracking-wide text-gray-500 mb-2">Transcript:</p>
+            <p className="text-xs uppercase tracking-wide text-gray-500 mb-2">Transcript (No audio available):</p>
             <p className="text-gray-300 text-sm leading-relaxed whitespace-pre-wrap">{content.transcript}</p>
           </div>
         )}
@@ -186,10 +199,15 @@ export function ListeningQuestionDisplay({
           <p className="font-medium">Listen to the academic lecture</p>
         </div>
 
-        {/* Transcript (since no real audio) */}
-        {content.transcript && (
+        {/* Audio Player */}
+        {content.audioUrl && (
+          <AudioPlayer audioUrl={`${API_URL}${content.audioUrl}`} className="mb-6" />
+        )}
+
+        {/* Transcript (for debugging/accessibility - can be hidden in production) */}
+        {content.transcript && !content.audioUrl && (
           <div className="bg-gray-800 border border-gray-700 rounded-lg p-4 mb-6">
-            <p className="text-xs uppercase tracking-wide text-gray-500 mb-2">Transcript:</p>
+            <p className="text-xs uppercase tracking-wide text-gray-500 mb-2">Transcript (No audio available):</p>
             <p className="text-gray-300 text-sm leading-relaxed whitespace-pre-wrap">{content.transcript}</p>
           </div>
         )}
@@ -270,26 +288,46 @@ export function ListeningQuestionDisplay({
 /**
  * Parse question content from JSON string or plain text
  * Handles both JSON-formatted content and plain text fallback
+ * Also checks metadata.audio_url for audio file location
  */
 function parseQuestionContent(
   question: ListeningQuestion
 ): ChooseResponseContent | ConversationContent | AcademicLectureContent {
+  // Check if audio URL is in metadata
+  const audioUrl = question.metadata?.audio_url as string | undefined || ''
+  
   try {
     // Try to parse as JSON first
     const parsed = JSON.parse(question.content)
+    // Add audio URL from metadata if not in content
+    if (audioUrl && !parsed.audioUrl) {
+      parsed.audioUrl = audioUrl
+    }
     return parsed
   } catch (error) {
     // If parsing fails, content is plain text - create fallback structure
-    console.warn(`Content for ${question.id} is not JSON, using plain text as transcript`)
+    console.warn(`Content for ${question.id} is not JSON, using plain text as question`)
     
-    // Extract question from content if it exists (look for common question patterns)
-    const questionMatch = question.content.match(/Question:\s*(.+?)(?:\n|$)/i)
-    const extractedQuestion: string = (questionMatch && questionMatch[1]) ? questionMatch[1] : 'Listen to the audio and answer the question.'
+    // Extract question from content if it looks like just instructions
+    const hasAudioInstruction = question.content.includes('[Listen to') || 
+                                 question.content.includes('Listen to the audio')
     
-    // Use the content as transcript, and create appropriate structure
+    let displayContent = question.content
+    let extractedQuestion = question.content
+    
+    if (hasAudioInstruction) {
+      // Remove audio instruction and use rest as question
+      displayContent = question.content
+        .replace(/\[Listen to[^\]]*\]/gi, '')
+        .replace(/Listen to the audio[^.]*\./gi, '')
+        .trim()
+      extractedQuestion = displayContent || 'Listen to the audio and answer the question.'
+    }
+    
+    // Use the content as question, and create appropriate structure with audio URL
     return {
-      audioUrl: '',
-      transcript: question.content,
+      audioUrl: audioUrl,
+      transcript: hasAudioInstruction ? '' : question.content, // Don't show transcript if audio available
       question: extractedQuestion
     }
   }

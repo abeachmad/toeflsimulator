@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { TextEditor } from './TextEditor'
 import { useExamStore } from '../stores/examStore'
 import type { SectionScore } from '../stores/examStore'
@@ -57,14 +57,26 @@ const TYPE_LABELS: Record<WritingQuestion['type'], string> = {
  * Requirements: 5.3, 5.4, 5.5, 5.6, 5.7, 5.8, 19.2
  */
 export function WritingSection({ question, onSubmit, className = '' }: WritingSectionProps) {
-  const { updateAnswer, setSectionScore } = useExamStore()
-  const [text, setText] = useState('')
+  const { updateAnswer, setSectionScore, answers } = useExamStore()
+  
+  // Load saved answer from store (fix for answer persistence)
+  const savedAnswer = answers.get(question.id) || ''
+  const [text, setText] = useState(savedAnswer)
+  
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [submitted, setSubmitted] = useState(false)
 
   const content = parseContent(question.content)
   const minWords = MIN_WORD_COUNTS[question.type]
+
+  // Update text when question changes (fix for switching between questions)
+  useEffect(() => {
+    const savedAnswer = answers.get(question.id) || ''
+    setText(savedAnswer)
+    setSubmitted(false) // Reset submission state for new question
+    setError(null) // Clear errors
+  }, [question.id, answers])
 
   const handleTextChange = (newText: string) => {
     setText(newText)
