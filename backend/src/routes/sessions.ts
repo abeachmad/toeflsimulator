@@ -480,16 +480,20 @@ router.post('/:sessionId/sections/:section/submit', validateRequest(sectionSubmi
         }
         
         // Convert submitted answers to ItemResponse format
-        const responses: ItemResponse[] = answers.map((ans: { itemId: string, answer: string }) => {
-          const item = items.find(it => it.id === ans.itemId);
-          if (!item) {
-            return { itemId: ans.itemId, isCorrect: false };
+        // IMPORTANT: Include ALL items, marking unanswered as incorrect
+        const answerMap = new Map(answers.map((ans: { itemId: string, answer: string }) => [ans.itemId, ans.answer]));
+        
+        const responses: ItemResponse[] = items.map((item) => {
+          const userAnswer = answerMap.get(item.id);
+          
+          // If no answer was submitted, mark as incorrect
+          if (!userAnswer) {
+            return { itemId: item.id, isCorrect: false };
           }
           
           // Handle different correct_answer formats
           let isCorrect = false;
           const correctAnswer = item.correct_answer;
-          const userAnswer = ans.answer;
           
           // If correct_answer is a number (index), compare with option at that index
           if (typeof correctAnswer === 'number' || !isNaN(Number(correctAnswer))) {
@@ -504,7 +508,7 @@ router.post('/:sessionId/sections/:section/submit', validateRequest(sectionSubmi
           }
           
           console.log('[Score Check]', {
-            itemId: ans.itemId,
+            itemId: item.id,
             userAnswer,
             correctAnswer,
             options: item.options,
@@ -512,7 +516,7 @@ router.post('/:sessionId/sections/:section/submit', validateRequest(sectionSubmi
           });
           
           return {
-            itemId: ans.itemId,
+            itemId: item.id,
             isCorrect
           };
         });
