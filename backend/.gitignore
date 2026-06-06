@@ -6,9 +6,9 @@
 dist/
 *.tsbuildinfo
 
-# Uploads
-uploads/
-audio-uploads/
+# Uploads (audio files are committed for Railway deployment)
+# uploads/
+# audio-uploads/
 
 # Logs
 *.log
