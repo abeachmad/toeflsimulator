@@ -37,66 +37,6 @@ export function SectionTimer({ section, timeLimit, onExpire }: SectionTimerProps
     return 'text-gray-700' // Default color
   }
 
-  // Retrieve existing timer state from backend (Requirement 12.2)
-  const retrieveTimerState = useCallback(async (sessionId: string) => {
-    try {
-      const response = await fetch(`${API_URL}/api/timers/${sessionId}`)
-
-      if (response.status === 410) {
-        // Timer expired (Requirement 2.6)
-        console.log('[SectionTimer] Timer already expired')
-        setTimerId(sessionId)
-        setRemainingSeconds(0)
-        setIsExpired(true)
-        onExpire()
-        return true // Timer exists but expired
-      }
-
-      if (response.status === 404) {
-        // Timer doesn't exist yet
-        console.log('[SectionTimer] No existing timer found')
-        return false
-      }
-
-      if (!response.ok) {
-        console.error('Failed to retrieve timer state:', response.statusText)
-        return false
-      }
-
-      const data = await response.json()
-      const { startTime, expirationTime, remainingTime } = data.data
-
-      // Calculate remaining time from start_time and current_time (Requirements 12.3, 12.4)
-      const now = Date.now()
-      const expiration = new Date(expirationTime).getTime()
-      const calculatedRemaining = Math.floor((expiration - now) / 1000)
-      
-      // Clamp remaining time to zero if calculated value is negative (Requirement 12.4)
-      const clampedRemaining = Math.max(0, calculatedRemaining)
-      
-      console.log('[SectionTimer] Retrieved timer state:', {
-        startTime,
-        expirationTime,
-        serverRemainingTime: remainingTime,
-        calculatedRemaining,
-        clampedRemaining
-      })
-
-      setTimerId(sessionId)
-      setRemainingSeconds(clampedRemaining)
-      
-      if (clampedRemaining === 0) {
-        setIsExpired(true)
-        onExpire()
-      }
-      
-      return true // Timer exists
-    } catch (error) {
-      console.error('Error retrieving timer state:', error)
-      return false
-    }
-  }, [onExpire])
-
   // Start timer with backend API (Requirement 12.1)
   const startTimer = useCallback(async (sessionId: string) => {
     try {
