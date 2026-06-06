@@ -482,7 +482,34 @@ router.post('/:sessionId/sections/:section/submit', validateRequest(sectionSubmi
         // Convert submitted answers to ItemResponse format
         const responses: ItemResponse[] = answers.map((ans: { itemId: string, answer: string }) => {
           const item = items.find(it => it.id === ans.itemId);
-          const isCorrect = item ? item.correct_answer === ans.answer : false;
+          if (!item) {
+            return { itemId: ans.itemId, isCorrect: false };
+          }
+          
+          // Handle different correct_answer formats
+          let isCorrect = false;
+          const correctAnswer = item.correct_answer;
+          const userAnswer = ans.answer;
+          
+          // If correct_answer is a number (index), compare with option at that index
+          if (typeof correctAnswer === 'number' || !isNaN(Number(correctAnswer))) {
+            const correctIndex = Number(correctAnswer);
+            const correctOption = item.options?.[correctIndex];
+            // User might submit the option text or the letter (A, B, C, D)
+            isCorrect = userAnswer === correctOption || 
+                       userAnswer === String.fromCharCode(65 + correctIndex); // A=65, B=66, etc
+          } else {
+            // Direct string comparison
+            isCorrect = correctAnswer === userAnswer;
+          }
+          
+          console.log('[Score Check]', {
+            itemId: ans.itemId,
+            userAnswer,
+            correctAnswer,
+            options: item.options,
+            isCorrect
+          });
           
           return {
             itemId: ans.itemId,
