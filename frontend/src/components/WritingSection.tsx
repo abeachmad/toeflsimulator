@@ -23,14 +23,23 @@ interface WritingSectionProps {
 }
 
 interface WritingContent {
-  prompt: string
+  prompt?: string
+  professorPrompt?: string // For academic-discussion
   taskDescription?: string
   referenceText?: string
 }
 
 function parseContent(raw: string): WritingContent {
   try {
-    return JSON.parse(raw) as WritingContent
+    const parsed = JSON.parse(raw)
+    // For academic-discussion, use professorPrompt as the main prompt
+    if (parsed.professorPrompt && !parsed.prompt) {
+      return {
+        ...parsed,
+        prompt: parsed.professorPrompt
+      }
+    }
+    return parsed as WritingContent
   } catch {
     return { prompt: raw }
   }
