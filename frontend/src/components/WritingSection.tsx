@@ -60,7 +60,8 @@ export function WritingSection({ question, onSubmit, className = '' }: WritingSe
   const { updateAnswer, setSectionScore, answers } = useExamStore()
   
   // Load saved answer from store (fix for answer persistence)
-  const savedAnswer = answers.get(question.id) || ''
+  // Ensure we get a string value (answers can be string | number | string[])
+  const savedAnswer = String(answers.get(question.id) || '')
   const [text, setText] = useState(savedAnswer)
   
   const [isLoading, setIsLoading] = useState(false)
@@ -72,7 +73,7 @@ export function WritingSection({ question, onSubmit, className = '' }: WritingSe
 
   // Update text when question changes (fix for switching between questions)
   useEffect(() => {
-    const savedAnswer = answers.get(question.id) || ''
+    const savedAnswer = String(answers.get(question.id) || '')
     setText(savedAnswer)
     setSubmitted(false) // Reset submission state for new question
     setError(null) // Clear errors
