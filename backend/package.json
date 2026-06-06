@@ -6,7 +6,8 @@
   "main": "dist/server.js",
   "scripts": {
     "dev": "tsx watch src/server.ts",
-    "build": "tsc",
+    "build": "tsc && npm run copy-uploads",
+    "copy-uploads": "node -e \"require('fs').cpSync('uploads', 'dist/uploads', {recursive: true})\"",
     "start": "node dist/server.js",
     "test": "vitest --run",
     "test:watch": "vitest",

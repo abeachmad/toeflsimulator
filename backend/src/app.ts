@@ -16,7 +16,11 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // Path to uploaded audio files
-const AUDIO_DIR = path.join(__dirname, '../../uploads/audio');
+// Check if running from compiled code (dist/) or source (src/)
+const isCompiled = __dirname.includes('dist');
+const AUDIO_DIR = isCompiled
+  ? path.join(__dirname, '../uploads/audio')  // Production: dist/app.js -> ../uploads
+  : path.join(__dirname, '../../uploads/audio'); // Dev: src/app.ts -> ../../uploads
 
 const app = express();
 const NODE_ENV = process.env.NODE_ENV || 'development';
